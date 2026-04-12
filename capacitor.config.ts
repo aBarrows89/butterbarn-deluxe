@@ -14,6 +14,10 @@ const config: CapacitorConfig = {
       backgroundColor: '#F7F2EA',
       overlaysWebView: false,
     },
+    CapacitorUpdater: {
+      autoUpdate: true,
+      defaultChannel: 'production',
+    },
   },
   // Uncomment for live reload during development:
   // server: {
