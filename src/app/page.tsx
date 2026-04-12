@@ -120,8 +120,15 @@ export default function ButterBarnDeluxe() {
   const { loading, loadLabel, planFullWeek, planDinners, planLunches, planDay, handlePrompt, analyzeReceipt, swapMeal, getRecipe } =
     useAI();
 
-  // Derived state
-  const meals = mealPlan?.meals ?? initEmptyMeals();
+  // Keep track of last valid meals to prevent flashing during query refetch
+  const lastMealsRef = useRef<{ weekId: string; meals: Record<DayFull, Record<MealType, string>> } | null>(null);
+  if (mealPlan?.meals) {
+    lastMealsRef.current = { weekId, meals: mealPlan.meals };
+  }
+  const cachedMeals = lastMealsRef.current?.weekId === weekId ? lastMealsRef.current.meals : null;
+
+  // Derived state - use last known meals during loading to prevent flash
+  const meals = mealPlan?.meals ?? cachedMeals ?? initEmptyMeals();
   const nutrition = mealPlan?.nutrition ?? {};
   const guests = mealPlan?.guests ?? 3;
   const grandmaMode = mealPlan?.grandmaMode ?? false;
