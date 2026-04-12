@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { T, MEAL_ICONS, type DayFull, type MealType } from "@/lib/constants";
 
 interface Nutrition {
@@ -11,7 +11,7 @@ interface Nutrition {
 }
 
 interface Recipe {
-  butterQuip: string;
+  butterQuip?: string;
   prepTime: string;
   cookTime: string;
   servings: number;
@@ -20,17 +20,29 @@ interface Recipe {
   tips?: string;
 }
 
+interface SavedRecipe extends Recipe {
+  _id: string;
+  mealName: string;
+  displayName: string;
+  prepRating?: number;
+  tasteRating?: number;
+  timesUsed: number;
+}
+
 interface MealDetailSheetProps {
   day: DayFull;
   meal: MealType;
   mealName: string;
   nutrition?: Nutrition;
   rating: { prep: number; taste: number };
+  savedRecipe?: SavedRecipe | null;
   guests: number;
   loading: boolean;
   loadLabel: string;
   onRatingChange: (field: "prep" | "taste", value: number) => void;
   onGetRecipe: (mealName: string, servings: number) => Promise<Recipe | null>;
+  onSaveRecipe: (mealName: string, recipe: Recipe) => Promise<void>;
+  onSwap: () => void;
   onEdit: () => void;
   onClose: () => void;
 }
@@ -83,22 +95,44 @@ export function MealDetailSheet({
   mealName,
   nutrition,
   rating,
+  savedRecipe,
   guests,
   loading,
   loadLabel,
   onRatingChange,
   onGetRecipe,
+  onSaveRecipe,
+  onSwap,
   onEdit,
   onClose,
 }: MealDetailSheetProps) {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [showRecipe, setShowRecipe] = useState(false);
 
+  // Use saved recipe if available
+  useEffect(() => {
+    if (savedRecipe) {
+      setRecipe(savedRecipe);
+    }
+  }, [savedRecipe]);
+
+  const hasRecipe = recipe || savedRecipe;
+
   const handleGetRecipe = async () => {
+    // If we already have a saved recipe, just show it
+    if (savedRecipe) {
+      setRecipe(savedRecipe);
+      setShowRecipe(true);
+      return;
+    }
+
+    // Generate new recipe
     const result = await onGetRecipe(mealName, guests);
     if (result) {
       setRecipe(result);
       setShowRecipe(true);
+      // Save to recipe book
+      await onSaveRecipe(mealName, result);
     }
   };
 
@@ -117,21 +151,31 @@ export function MealDetailSheet({
       }}
     >
       <div className="mb-3.5 flex items-start justify-between">
-        <div>
-          <div className="text-base font-bold leading-tight" style={{ fontFamily: "var(--font-lora), serif" }}>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-base font-bold leading-tight" style={{ fontFamily: "var(--font-lora), serif" }}>
             {mealName}
           </div>
           <div className="mt-0.5 text-[11.5px]" style={{ color: T.muted }}>
             {day} · {MEAL_ICONS[meal]} {meal}
           </div>
         </div>
-        <button
-          onClick={onEdit}
-          className="shrink-0 cursor-pointer rounded-lg border-none px-2.5 py-1.5 text-[11.5px] font-bold"
-          style={{ background: T.butterL, color: T.butter }}
-        >
-          Edit
-        </button>
+        <div className="flex shrink-0 gap-1.5">
+          <button
+            onClick={onSwap}
+            disabled={loading}
+            className="cursor-pointer rounded-lg border px-2.5 py-1.5 text-[11.5px] font-bold disabled:opacity-50"
+            style={{ background: T.terraL, color: T.terra, borderColor: T.terra }}
+          >
+            Swap
+          </button>
+          <button
+            onClick={onEdit}
+            className="cursor-pointer rounded-lg border-none px-2.5 py-1.5 text-[11.5px] font-bold"
+            style={{ background: T.butterL, color: T.butter }}
+          >
+            Edit
+          </button>
+        </div>
       </div>
 
       {/* Nutrition */}
@@ -178,12 +222,12 @@ export function MealDetailSheet({
           disabled={loading}
           className="mb-4 w-full cursor-pointer rounded-[14px] border py-3 text-sm font-bold transition-all disabled:cursor-default disabled:opacity-50"
           style={{
-            background: loading ? T.muted : T.terraL,
-            color: loading ? "#fff" : T.terra,
-            borderColor: loading ? T.muted : T.terra,
+            background: loading ? T.muted : hasRecipe ? T.greenL : T.terraL,
+            color: loading ? "#fff" : hasRecipe ? T.green : T.terra,
+            borderColor: loading ? T.muted : hasRecipe ? T.green : T.terra,
           }}
         >
-          {loading ? `🧈 ${loadLabel}` : "📖 Get Recipe"}
+          {loading ? `🧈 ${loadLabel}` : hasRecipe ? "📖 View Recipe" : "📖 Get Recipe"}
         </button>
       ) : recipe ? (
         <div

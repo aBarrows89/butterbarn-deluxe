@@ -9,14 +9,14 @@
   /* Dynamic sizing based on viewport */
   --nav-height: clamp(56px, 8vh, 72px);
   --sheet-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
-  --sheet-margin: clamp(12px, 3vw, 16px);
-  --sheet-radius: clamp(16px, 4vw, 24px);
+  --sheet-margin: clamp(16px, 4vw, 20px);
+  --sheet-radius: clamp(20px, 5vw, 28px);
   --font-sm: clamp(12px, 3.2vw, 14px);
   --font-base: clamp(14px, 3.6vw, 16px);
   --font-lg: clamp(16px, 4vw, 18px);
-  --spacing-sm: clamp(8px, 2vw, 12px);
-  --spacing-md: clamp(12px, 3vw, 16px);
-  --spacing-lg: clamp(16px, 4vw, 24px);
+  --spacing-sm: clamp(12px, 3vw, 16px);
+  --spacing-md: clamp(16px, 4vw, 20px);
+  --spacing-lg: clamp(20px, 5vw, 28px);
 }
 
 @theme inline {

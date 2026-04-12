@@ -1,6 +1,18 @@
 // 364+ seasonal daily greetings for Butter's persona
 // Organized by month (0-11 = January-December)
 
+// Special love notes from Andy that occasionally appear instead of Butter's greeting
+const ANDY_LOVE_NOTES = [
+  "Hey babes, I appreciate you more than you'll ever know. ❤️ —Andy",
+  "Wifey, you're the best thing that ever happened to me. Love you! ❤️ —Andy",
+  "Hey babes, thank you for everything you do for me and Adam. You're amazing. ❤️ —Andy",
+  "Just a reminder: I love you more today than yesterday. ❤️ —Andy",
+  "Babes, you make our house a home. I'm so grateful for you. ❤️ —Andy",
+  "Hey wifey, I hope you know how special you are. Love you always. ❤️ —Andy",
+  "You're my favorite person. Just thought you should know. ❤️ —Andy",
+  "Babes, Adam and I are the luckiest. Thank you for being you. ❤️ —Andy",
+];
+
 export const MONTHLY_GREETINGS: Record<number, string[]> = {
   0: [
     "Hey Sam! I'm Butter — your personal Butter Barn Deluxe assistant. January means new year, fresh starts, and soup season. Let's kick things off right, honey.",
@@ -394,11 +406,18 @@ export const MONTHLY_GREETINGS: Record<number, string[]> = {
 
 /**
  * Get the daily greeting based on current date
+ * ~15% chance of a love note from Andy instead of Butter's greeting
  */
 export function getDailyGreeting(): string {
   const now = new Date();
   const month = now.getMonth(); // 0-11
   const day = now.getDate() - 1; // 0-30 (adjusted for array index)
+
+  // ~15% chance of a love note from Andy
+  if (Math.random() < 0.15) {
+    return ANDY_LOVE_NOTES[Math.floor(Math.random() * ANDY_LOVE_NOTES.length)];
+  }
+
   const pool = MONTHLY_GREETINGS[month];
   return pool[day % pool.length];
 }

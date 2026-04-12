@@ -15,6 +15,7 @@ import type * as preferences from "../preferences.js";
 import type * as priceHistory from "../priceHistory.js";
 import type * as ratings from "../ratings.js";
 import type * as receipts from "../receipts.js";
+import type * as recipes from "../recipes.js";
 import type * as shoppingList from "../shoppingList.js";
 
 import type {
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   priceHistory: typeof priceHistory;
   ratings: typeof ratings;
   receipts: typeof receipts;
+  recipes: typeof recipes;
   shoppingList: typeof shoppingList;
 }>;
 

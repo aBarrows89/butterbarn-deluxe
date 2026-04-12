@@ -41,14 +41,15 @@ export function PreviewSheet({ plan, onAccept, onReject }: PreviewSheetProps) {
 
   return (
     <div
-      className="fixed inset-x-0 z-[60] flex flex-col overflow-hidden rounded-t-3xl border-t animate-in slide-in-from-bottom duration-300"
+      className="fixed z-[60] flex flex-col overflow-hidden rounded-t-3xl border-t animate-in slide-in-from-bottom duration-300"
       style={{
+        left: "var(--sheet-margin)",
+        right: "var(--sheet-margin)",
         bottom: "calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))",
-        maxHeight: "75vh",
+        maxHeight: "70vh",
         background: T.card,
         borderTopColor: T.border,
         boxShadow: "0 -8px 32px rgba(0,0,0,0.15)",
-        margin: "0 var(--sheet-margin)",
       }}
     >
       {/* Header */}
@@ -102,46 +103,50 @@ export function PreviewSheet({ plan, onAccept, onReject }: PreviewSheetProps) {
       </div>
 
       {/* Scrollable meal list */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2" style={{ WebkitOverflowScrolling: "touch" }}>
         {DAYS_FULL.map((day) => {
           const dayMeals = meals[day] || {};
           const hasMeals = MEAL_TYPES.some((m) => dayMeals[m]);
           if (!hasMeals) return null;
 
           return (
-            <div key={day} className="mb-3">
+            <div key={day} className="mb-2">
               <div
-                className="mb-1.5 text-xs font-extrabold uppercase tracking-wider"
-                style={{ color: T.butter }}
+                className="mb-1 font-extrabold uppercase"
+                style={{ color: T.butter, fontSize: "clamp(9px, 2.2vw, 11px)", letterSpacing: "0.5px" }}
               >
                 {day}
               </div>
               <div
-                className="rounded-xl border p-2"
-                style={{ background: T.bg, borderColor: T.border }}
+                className="rounded-lg border"
+                style={{ background: T.bg, borderColor: T.border, padding: "clamp(6px, 1.5vw, 10px)" }}
               >
-                {MEAL_TYPES.map((mealType) => {
+                {MEAL_TYPES.map((mealType, idx) => {
                   const mealName = dayMeals[mealType];
                   if (!mealName) return null;
+                  const isFirst = MEAL_TYPES.slice(0, idx).every((m) => !dayMeals[m]);
                   return (
                     <div
                       key={mealType}
-                      className="flex items-center gap-2 py-1.5"
-                      style={{ borderTop: mealType !== "Breakfast" ? `1px solid ${T.border}` : "none" }}
+                      className="flex items-center gap-1.5"
+                      style={{
+                        borderTop: !isFirst ? `1px solid ${T.border}` : "none",
+                        padding: "clamp(4px, 1vw, 6px) 0",
+                      }}
                     >
-                      <span style={{ fontSize: "clamp(12px, 3vw, 16px)" }}>
+                      <span style={{ fontSize: "clamp(11px, 2.5vw, 14px)" }}>
                         {MEAL_ICONS[mealType]}
                       </span>
                       <div className="flex-1 min-w-0">
                         <div
-                          className="text-xs font-bold uppercase tracking-wide"
-                          style={{ color: T.muted }}
+                          className="font-bold uppercase"
+                          style={{ color: T.muted, fontSize: "clamp(8px, 2vw, 9px)", letterSpacing: "0.3px" }}
                         >
                           {mealType}
                         </div>
                         <div
-                          className="truncate text-sm font-semibold"
-                          style={{ color: T.brown }}
+                          className="truncate font-semibold"
+                          style={{ color: T.brown, fontSize: "clamp(11px, 2.8vw, 13px)" }}
                         >
                           {mealName}
                         </div>

@@ -36,6 +36,7 @@ interface ReceiptScannerProps {
     items: ReceiptItem[];
     butterQuip: string;
   }) => void;
+  onDeleteReceipt: (id: string) => void;
 }
 
 function fileToBase64(f: File): Promise<string> {
@@ -53,6 +54,7 @@ export function ReceiptScanner({
   loadLabel,
   onAnalyze,
   onReceiptAnalyzed,
+  onDeleteReceipt,
 }: ReceiptScannerProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [store, setStore] = useState("Aldi");
@@ -61,24 +63,49 @@ export function ReceiptScanner({
   const handleAnalyze = async () => {
     if (!files.length || loading) return;
 
+    // Collect all items from all photos
+    const allItems: ReceiptItem[] = [];
+    let latestDate = "";
+    let maxTotal = 0;
+    let lastQuip = "";
+
     for (const file of files) {
       const base64 = await fileToBase64(file);
       const result = await onAnalyze(base64, file.type, store);
       if (result) {
-        onReceiptAnalyzed({
-          store: result.store || store,
-          date: result.date,
-          total: result.total,
-          items: result.items,
-          butterQuip: result.butterQuip,
-        });
+        // Merge items, dedupe by name+price
+        for (const item of result.items) {
+          const key = `${item.name.toLowerCase()}|${item.price}`;
+          const exists = allItems.some(
+            (i) => `${i.name.toLowerCase()}|${i.price}` === key
+          );
+          if (!exists) {
+            allItems.push(item);
+          }
+        }
+        // Use latest date and highest total
+        if (result.date > latestDate) latestDate = result.date;
+        if (result.total > maxTotal) maxTotal = result.total;
+        if (result.butterQuip) lastQuip = result.butterQuip;
       }
     }
+
+    // Save as single merged receipt
+    if (allItems.length > 0) {
+      onReceiptAnalyzed({
+        store,
+        date: latestDate,
+        total: maxTotal,
+        items: allItems,
+        butterQuip: lastQuip || `Got ${allItems.length} items from your receipt!`,
+      });
+    }
+
     setFiles([]);
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden px-3 pt-2">
+    <div className="flex h-full flex-col overflow-hidden" style={{ padding: "16px 24px" }}>
       <div className="mb-1 font-bold" style={{ fontFamily: "var(--font-lora), serif", fontSize: "clamp(14px, 4vw, 18px)" }}>
         Scan Receipt
       </div>
@@ -87,8 +114,8 @@ export function ReceiptScanner({
       </div>
 
       <div
-        className="mb-2 flex shrink-0 items-center gap-2 rounded-xl border"
-        style={{ background: T.card, borderColor: T.border, padding: "clamp(8px, 2vh, 12px)" }}
+        className="mb-3 flex shrink-0 items-center gap-2 rounded-2xl"
+        style={{ background: T.card, border: `1.5px solid ${T.border}`, padding: "12px 16px" }}
       >
         <span className="whitespace-nowrap font-semibold" style={{ color: T.brown, fontSize: "clamp(11px, 2.5vw, 14px)" }}>
           🏪
@@ -162,25 +189,35 @@ export function ReceiptScanner({
       )}
 
       {/* Scrollable receipts list */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto pb-16">
         {receipts.map((r) => (
           <div
             key={r._id}
-            className="mb-2 rounded-xl border p-3 animate-in fade-in slide-in-from-bottom-2"
-            style={{ background: T.card, borderColor: T.border, boxShadow: T.shadow }}
+            className="mb-3 rounded-2xl animate-in fade-in slide-in-from-bottom-2"
+            style={{ background: T.card, border: `1.5px solid ${T.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)", padding: "14px 16px" }}
           >
             <div className="mb-2 flex items-start justify-between">
-              <div>
+              <div className="flex-1">
                 <div className="font-bold" style={{ fontSize: "clamp(12px, 3vw, 14px)" }}>{r.store}</div>
                 <div style={{ color: T.muted, fontSize: "clamp(10px, 2.5vw, 12px)" }}>
                   {r.date || "Recent"}
                 </div>
               </div>
-              {r.total != null && (
-                <div className="font-bold" style={{ fontFamily: "var(--font-lora), serif", color: T.green, fontSize: "clamp(14px, 3.5vw, 17px)" }}>
-                  ${r.total.toFixed(2)}
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                {r.total != null && (
+                  <div className="font-bold" style={{ fontFamily: "var(--font-lora), serif", color: T.green, fontSize: "clamp(14px, 3.5vw, 17px)" }}>
+                    ${r.total.toFixed(2)}
+                  </div>
+                )}
+                <button
+                  onClick={() => onDeleteReceipt(r._id)}
+                  className="cursor-pointer rounded-lg border-none p-1.5"
+                  style={{ background: T.bg, color: T.muted, fontSize: "clamp(12px, 3vw, 14px)" }}
+                  title="Delete receipt"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             {(r.items || []).slice(0, 3).map((item, i) => (
               <div

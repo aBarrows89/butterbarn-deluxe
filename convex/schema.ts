@@ -10,53 +10,53 @@ export default defineSchema({
   }).index("by_email", ["email"]),
 
   // ============ MEAL PLANS ============
-  // Each week's meal plan (7 days × 4 meal types)
+  // Each week's dinner plan (7 days) - Breakfast/Lunch/Snacks optional for backwards compatibility
   mealPlans: defineTable({
     weekId: v.string(), // Format: "2024-W15" (ISO week)
     userId: v.optional(v.id("users")),
-    // Meals stored as nested object: {Monday: {Breakfast: "", Lunch: "", Dinner: "", Snacks: ""}, ...}
+    // Meals stored as nested object: {Monday: {Dinner: ""}, ...}
     meals: v.object({
       Monday: v.object({
-        Breakfast: v.string(),
-        Lunch: v.string(),
         Dinner: v.string(),
-        Snacks: v.string(),
+        Breakfast: v.optional(v.string()),
+        Lunch: v.optional(v.string()),
+        Snacks: v.optional(v.string()),
       }),
       Tuesday: v.object({
-        Breakfast: v.string(),
-        Lunch: v.string(),
         Dinner: v.string(),
-        Snacks: v.string(),
+        Breakfast: v.optional(v.string()),
+        Lunch: v.optional(v.string()),
+        Snacks: v.optional(v.string()),
       }),
       Wednesday: v.object({
-        Breakfast: v.string(),
-        Lunch: v.string(),
         Dinner: v.string(),
-        Snacks: v.string(),
+        Breakfast: v.optional(v.string()),
+        Lunch: v.optional(v.string()),
+        Snacks: v.optional(v.string()),
       }),
       Thursday: v.object({
-        Breakfast: v.string(),
-        Lunch: v.string(),
         Dinner: v.string(),
-        Snacks: v.string(),
+        Breakfast: v.optional(v.string()),
+        Lunch: v.optional(v.string()),
+        Snacks: v.optional(v.string()),
       }),
       Friday: v.object({
-        Breakfast: v.string(),
-        Lunch: v.string(),
         Dinner: v.string(),
-        Snacks: v.string(),
+        Breakfast: v.optional(v.string()),
+        Lunch: v.optional(v.string()),
+        Snacks: v.optional(v.string()),
       }),
       Saturday: v.object({
-        Breakfast: v.string(),
-        Lunch: v.string(),
         Dinner: v.string(),
-        Snacks: v.string(),
+        Breakfast: v.optional(v.string()),
+        Lunch: v.optional(v.string()),
+        Snacks: v.optional(v.string()),
       }),
       Sunday: v.object({
-        Breakfast: v.string(),
-        Lunch: v.string(),
         Dinner: v.string(),
-        Snacks: v.string(),
+        Breakfast: v.optional(v.string()),
+        Lunch: v.optional(v.string()),
+        Snacks: v.optional(v.string()),
       }),
     }),
     // Nutrition per meal: {"Monday-Dinner": {calories, protein, carbs, fat}}
@@ -186,6 +186,36 @@ export default defineSchema({
     .index("by_week", ["weekId"])
     .index("by_user_week", ["userId", "weekId"]),
 
+  // ============ RECIPE BOOK ============
+  // Saved recipes with ratings and usage history
+  recipes: defineTable({
+    mealName: v.string(), // Normalized meal name (lowercase)
+    displayName: v.string(), // Original display name
+    prepTime: v.string(),
+    cookTime: v.string(),
+    servings: v.number(),
+    ingredients: v.array(v.object({
+      item: v.string(),
+      amount: v.string(),
+    })),
+    steps: v.array(v.string()),
+    tips: v.optional(v.string()),
+    butterQuip: v.optional(v.string()),
+    // Ratings
+    prepRating: v.optional(v.number()), // 1-5
+    tasteRating: v.optional(v.number()), // 1-5
+    // Usage tracking
+    timesUsed: v.number(),
+    lastUsed: v.optional(v.number()),
+    userId: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_meal", ["mealName"])
+    .index("by_user", ["userId"])
+    .index("by_times_used", ["timesUsed"])
+    .index("by_taste_rating", ["tasteRating"]),
+
   // ============ PREFERENCES ============
   // User food preferences, dislikes, allergies
   preferences: defineTable({
@@ -193,6 +223,10 @@ export default defineSchema({
     dislikes: v.array(v.string()), // Foods/ingredients they don't like
     allergies: v.array(v.string()), // Allergies to avoid
     avoidMeals: v.array(v.string()), // Specific meals that got poor ratings
+    substitutions: v.optional(v.array(v.object({ // Ingredient substitutions
+      original: v.string(),
+      replacement: v.string(),
+    }))),
     notes: v.optional(v.string()), // Other dietary notes
     createdAt: v.number(),
     updatedAt: v.number(),

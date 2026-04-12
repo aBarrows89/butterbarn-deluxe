@@ -2,7 +2,7 @@
 
 import { T } from "@/lib/constants";
 
-type TabType = "plan" | "list" | "receipt" | "prices";
+type TabType = "plan" | "list" | "recipes" | "receipt" | "prices";
 
 interface BottomNavProps {
   tab: TabType;
@@ -77,9 +77,28 @@ const ChartIcon = ({ active }: { active: boolean }) => (
   </svg>
 );
 
+const BookIcon = ({ active }: { active: boolean }) => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={active ? T.butter : T.muted}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+    <line x1="9" y1="7" x2="15" y2="7" />
+    <line x1="9" y1="11" x2="15" y2="11" />
+  </svg>
+);
+
 const TABS: { id: TabType; label: string; Icon: typeof CalIcon }[] = [
   { id: "plan", label: "Plan", Icon: CalIcon },
   { id: "list", label: "List", Icon: ListIcon },
+  { id: "recipes", label: "Recipes", Icon: BookIcon },
   { id: "receipt", label: "Receipt", Icon: ReceiptIcon },
   { id: "prices", label: "Prices", Icon: ChartIcon },
 ];

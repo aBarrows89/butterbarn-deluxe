@@ -93,10 +93,19 @@ async function callClaude(
   }
 }
 
+interface RatingFeedback {
+  favorites: string[];
+  disliked: string[];
+  easyMeals: string[];
+  hardMeals: string[];
+}
+
 interface Preferences {
   dislikes: string[];
   allergies: string[];
   avoidMeals: string[];
+  substitutions?: Array<{ original: string; replacement: string }>;
+  ratingFeedback?: RatingFeedback;
 }
 
 function buildPlanSystem(guests: number, prefs: Preferences, grandmaMode: boolean, extra: string = "") {
@@ -110,6 +119,27 @@ function buildPlanSystem(guests: number, prefs: Preferences, grandmaMode: boolea
   if (prefs.avoidMeals.length > 0) {
     prefsText += `\nMEALS TO AVOID (poorly rated): ${prefs.avoidMeals.join(", ")}`;
   }
+  if (prefs.substitutions && prefs.substitutions.length > 0) {
+    const subs = prefs.substitutions.map((s) => `${s.original} → ${s.replacement}`).join(", ");
+    prefsText += `\nSUBSTITUTIONS (always use these): ${subs}`;
+  }
+
+  // Rating feedback - what the family actually liked/disliked
+  if (prefs.ratingFeedback) {
+    const rf = prefs.ratingFeedback;
+    if (rf.favorites.length > 0) {
+      prefsText += `\nFAMILY FAVORITES (they loved these, include similar or these again): ${rf.favorites.slice(0, 10).join(", ")}`;
+    }
+    if (rf.disliked.length > 0) {
+      prefsText += `\nDIDN'T LIKE (avoid these or similar): ${rf.disliked.join(", ")}`;
+    }
+    if (rf.easyMeals.length > 0) {
+      prefsText += `\nEASY TO MAKE (prefer these styles): ${rf.easyMeals.slice(0, 8).join(", ")}`;
+    }
+    if (rf.hardMeals.length > 0) {
+      prefsText += `\nTOO HARD (avoid similar complexity): ${rf.hardMeals.join(", ")}`;
+    }
+  }
 
   let guestInfo = `${guests} people`;
   let grandmaNote = "";
@@ -117,23 +147,23 @@ function buildPlanSystem(guests: number, prefs: Preferences, grandmaMode: boolea
     guestInfo = `${guests} people normally, but ${guests + 1} people when Grandma visits`;
     grandmaNote = `
 GRANDMA VISITS: Sat-Tue schedule:
-- Saturday: ALL meals = ${guests + 1} people
-- Sunday: ALL meals = ${guests + 1} people
-- Monday: ALL meals = ${guests + 1} people
-- Tuesday: Breakfast & Lunch = ${guests + 1} people, Dinner & Snacks = ${guests} people (she leaves before dinner)
-- Wed/Thu/Fri: ALL meals = ${guests} people`;
+- Saturday dinner = ${guests + 1} people
+- Sunday dinner = ${guests + 1} people
+- Monday dinner = ${guests + 1} people
+- Tuesday dinner = ${guests} people (she leaves before dinner)
+- Wed/Thu/Fri dinner = ${guests} people`;
   }
 
   return `${BUTTER_PERSONA}${extra}${prefsText}${grandmaNote}
 Return ONLY valid JSON (no markdown, no extra text):
 {
   "butterQuip":"",
-  "meals":{"Monday":{"Breakfast":"","Lunch":"","Dinner":"","Snacks":""},"Tuesday":{"Breakfast":"","Lunch":"","Dinner":"","Snacks":""},"Wednesday":{"Breakfast":"","Lunch":"","Dinner":"","Snacks":""},"Thursday":{"Breakfast":"","Lunch":"","Dinner":"","Snacks":""},"Friday":{"Breakfast":"","Lunch":"","Dinner":"","Snacks":""},"Saturday":{"Breakfast":"","Lunch":"","Dinner":"","Snacks":""},"Sunday":{"Breakfast":"","Lunch":"","Dinner":"","Snacks":""}},
-  "nutrition":{"Monday-Breakfast":{"calories":0,"protein":0,"carbs":0,"fat":0}},
-  "shoppingList":[{"ingredient":"","quantity":"","unit":"","meal":"Day MealType — MealName","category":"Produce|Meat & Seafood|Dairy & Eggs|Pantry|Frozen|Bakery|Beverages|Household|Other"}]
+  "meals":{"Monday":{"Dinner":""},"Tuesday":{"Dinner":""},"Wednesday":{"Dinner":""},"Thursday":{"Dinner":""},"Friday":{"Dinner":""},"Saturday":{"Dinner":""},"Sunday":{"Dinner":""}},
+  "nutrition":{"Monday-Dinner":{"calories":0,"protein":0,"carbs":0,"fat":0}},
+  "shoppingList":[{"ingredient":"","quantity":"","unit":"","meal":"Day Dinner — MealName","category":"Produce|Meat & Seafood|Dairy & Eggs|Pantry|Frozen|Bakery|Beverages|Household|Other"}]
 }
-Rules: keep existing meals unless request changes them. Scale ingredient quantities according to the guest count for each specific meal (accounting for Grandma's schedule if applicable). Consolidate duplicate ingredients. Each list item must reference its meal(s).
-IMPORTANT: nutrition key format is "Day-MealType" (e.g. "Monday-Dinner"). Provide nutrition for every meal that has a name. Calories and macros should be PER PERSON values. Return ONLY the JSON.`;
+Rules: keep existing dinners unless request changes them. Scale ingredient quantities according to the guest count for each specific dinner (accounting for Grandma's schedule if applicable). Consolidate duplicate ingredients. Each list item must reference its meal.
+IMPORTANT: nutrition key format is "Day-Dinner" (e.g. "Monday-Dinner"). Provide nutrition for every dinner that has a name. Calories and macros should be PER PERSON values. Return ONLY the JSON.`;
 }
 
 export function useAI() {
@@ -149,11 +179,11 @@ export function useAI() {
       grandmaMode: boolean = false
     ): Promise<PlanResponse | null> => {
       setLoading(true);
-      setLoadLabel("Planning the whole week...");
+      setLoadLabel("Planning dinners...");
       try {
         const raw = await callClaude(
-          `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: Plan a complete, varied, and delicious full week of meals for ${guests} people — breakfast, lunch, dinner, and snacks for all 7 days. Make it feel cohesive but varied. Think about the week as a whole.`,
-          buildPlanSystem(guests, prefs, grandmaMode, "\nFocus: fill every single meal slot for all 7 days. Be creative, varied, and practical.")
+          `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: Plan a complete, varied, and delicious week of DINNERS for ${guests} people — one dinner for each of the 7 days. Make it feel cohesive but varied. Think about the week as a whole. Include a mix of cuisines and cooking styles.`,
+          buildPlanSystem(guests, prefs, grandmaMode, "\nFocus: plan dinners only. Be creative, varied, and practical. Include quick weeknight meals and maybe something special for the weekend.")
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -238,11 +268,11 @@ export function useAI() {
       setLoadLabel(`Planning ${day}...`);
       try {
         const request = customPrompt.trim()
-          ? `Plan all meals (breakfast, lunch, dinner, snacks) for ${day} for ${guests} people. Extra guidance: ${customPrompt}`
-          : `Plan all meals (breakfast, lunch, dinner, snacks) for ${day} for ${guests} people. Make them varied and delicious.`;
+          ? `Plan dinner for ${day} for ${guests} people. Extra guidance: ${customPrompt}`
+          : `Plan a delicious dinner for ${day} for ${guests} people.`;
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: ${request}`,
-          buildPlanSystem(guests, prefs, grandmaMode, `\nFocus: ONLY update the meals for ${day}. Leave all other days completely unchanged.`)
+          buildPlanSystem(guests, prefs, grandmaMode, `\nFocus: ONLY update dinner for ${day}. Leave all other days completely unchanged.`)
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -291,6 +321,7 @@ export function useAI() {
       setLoading(true);
       setLoadLabel("Reading receipt...");
       try {
+        const today = new Date().toISOString().split("T")[0];
         const raw = await callClaude(
           [
             {
@@ -303,10 +334,33 @@ export function useAI() {
             },
             {
               type: "text",
-              text: "Extract every line item from this grocery receipt.",
+              text: `Extract all items from this grocery receipt.
+
+STEP 1 - FIND THE TRANSACTION DATE (this is critical!):
+- Look near the TOP of the receipt for a date/time stamp
+- Look for patterns like "04/12/26", "04-12-2026", "APR 12 2026", "April 12, 2026"
+- The date is usually on the same line as or near the time (e.g., "04/12/26 14:32")
+- We are currently in the year 2026, so dates like "04/12/26" mean April 12, 2026
+- DO NOT default to today (${today}) - find the actual printed date
+
+STEP 2 - Extract items:
+- Product name (simplify: "ORG BANANAS" → "Bananas")
+- Price (dollar amount on the right)
+- Skip subtotals, tax, payment info
+
+STEP 3 - Find the total at the bottom.`,
             },
           ],
-          `${BUTTER_PERSONA}\nReturn ONLY valid JSON: {"butterQuip":"","store":"${store}","date":"YYYY-MM-DD","items":[{"name":"","price":0.00,"quantity":"1","unit":"ea"}],"total":0.00}`
+          `You are a receipt scanner. Be precise about the DATE - it's printed on every receipt.
+Return ONLY valid JSON:
+{
+  "butterQuip": "short friendly comment",
+  "store": "${store}",
+  "date": "YYYY-MM-DD",
+  "items": [{"name": "Item", "price": 0.00, "quantity": "1", "unit": "ea"}],
+  "total": 0.00
+}
+IMPORTANT: The date field must be the date PRINTED ON THE RECEIPT, not today's date.`
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -321,13 +375,65 @@ export function useAI() {
     []
   );
 
+  const swapMeal = useCallback(
+    async (
+      day: string,
+      mealType: string,
+      currentMeal: string,
+      currentMeals: Record<string, Record<string, string>>,
+      guests: number,
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
+    ): Promise<{ newMeal: string; butterQuip: string; nutrition?: { calories: number; protein: number; carbs: number; fat: number } } | null> => {
+      setLoading(true);
+      setLoadLabel("Finding something else...");
+      try {
+        let prefsText = "";
+        if (prefs.dislikes.length > 0) {
+          prefsText += `\nDISLIKES: ${prefs.dislikes.join(", ")}`;
+        }
+        if (prefs.avoidMeals.length > 0) {
+          prefsText += `\nAVOID: ${prefs.avoidMeals.join(", ")}`;
+        }
+        if (prefs.substitutions && prefs.substitutions.length > 0) {
+          const subs = prefs.substitutions.map((s) => `${s.original} → ${s.replacement}`).join(", ");
+          prefsText += `\nSUBSTITUTIONS: ${subs}`;
+        }
+        const raw = await callClaude(
+          `Current ${day} meals: ${JSON.stringify(currentMeals[day])}\nCurrent ${mealType}: "${currentMeal}"\n\nSuggest a DIFFERENT ${mealType.toLowerCase()} for ${day}. It should be completely different from "${currentMeal}" but appropriate for ${mealType.toLowerCase()}. For ${guests} people.${prefsText}`,
+          `${BUTTER_PERSONA}
+Return ONLY valid JSON (no markdown):
+{
+  "newMeal": "Name of the new meal",
+  "butterQuip": "A short quip about the swap",
+  "nutrition": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
+}
+Return ONLY the JSON. Nutrition values are per person.`
+        );
+        const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+        return parsed;
+      } catch (e) {
+        console.error("Swap error:", e);
+        return null;
+      } finally {
+        setLoading(false);
+        setLoadLabel("");
+      }
+    },
+    []
+  );
+
   const getRecipe = useCallback(
-    async (mealName: string, servings: number): Promise<RecipeResponse | null> => {
+    async (mealName: string, servings: number, prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }): Promise<RecipeResponse | null> => {
       setLoading(true);
       setLoadLabel("Writing recipe...");
       try {
+        let subsNote = "";
+        if (prefs.substitutions && prefs.substitutions.length > 0) {
+          const subs = prefs.substitutions.map((s) => `${s.original} → ${s.replacement}`).join(", ");
+          subsNote = `\nIMPORTANT SUBSTITUTIONS (use these instead): ${subs}`;
+        }
         const raw = await callClaude(
-          `Generate a detailed, practical recipe for: "${mealName}" for ${servings} people. Make it home-cook friendly with common ingredients.`,
+          `Generate a detailed, practical recipe for: "${mealName}" for ${servings} people. Make it home-cook friendly with common ingredients.${subsNote}`,
           `${BUTTER_PERSONA}
 Return ONLY valid JSON (no markdown):
 {
@@ -363,6 +469,7 @@ Be specific with measurements and times. Steps should be clear and concise. Retu
     planDay,
     handlePrompt,
     analyzeReceipt,
+    swapMeal,
     getRecipe,
   };
 }

@@ -13,14 +13,11 @@ export const DAYS_FULL = [
 export type DayFull = (typeof DAYS_FULL)[number];
 
 // ============ MEAL TYPES ============
-export const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snacks"] as const;
+export const MEAL_TYPES = ["Dinner"] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
 export const MEAL_ICONS: Record<MealType, string> = {
-  Breakfast: "🌅",
-  Lunch: "☀️",
   Dinner: "🌙",
-  Snacks: "🍿",
 };
 
 // ============ STORES ============
@@ -89,9 +86,10 @@ export const T = {
 } as const;
 
 // ============ BUTTER PERSONA ============
-export const BUTTER_PERSONA = `You are Butter — the warm, witty, slightly opinionated kitchen companion of Butter Barn Deluxe, Sam's personal meal planning app. Sam shops primarily at Aldi.
+export const BUTTER_PERSONA = `You are Butter — the warm, witty, slightly opinionated kitchen companion of Butter Barn Deluxe, Sam's personal meal planning app.
+ABOUT THE FAMILY: Sam is an amazing wife and mom. Her husband Andy built this app for her. Their son is Adam. Sam shops primarily at Aldi.
 Personality: warm Southern aunt energy, loves bold flavors, occasionally sassy, supportive, funny. Calls Sam "honey" or "sugar" sometimes.
-Every response MUST include a "butterQuip" (1–2 punchy sentences reacting in character). Be specific, warm, funny.`;
+Every response MUST include a "butterQuip" (1–2 punchy sentences reacting in character). Be specific, warm, funny. Occasionally mention how lucky Andy and Adam are to have Sam cooking for them.`;
 
 // ============ HELPER: Get current week ID ============
 export function getCurrentWeekId(): string {
@@ -153,10 +151,7 @@ export function initEmptyMeals(): Record<DayFull, Record<MealType, string>> {
     (acc, day) => ({
       ...acc,
       [day]: {
-        Breakfast: "",
-        Lunch: "",
         Dinner: "",
-        Snacks: "",
       },
     }),
     {} as Record<DayFull, Record<MealType, string>>

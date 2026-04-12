@@ -84,10 +84,16 @@ export const addMultipleEntries = mutation({
         .first();
 
       if (existing) {
-        await ctx.db.patch(existing._id, {
-          entries: [...existing.entries, item.entry],
-          updatedAt: now,
-        });
+        // Check if we already have an entry for this date/store (avoid duplicates)
+        const isDupe = existing.entries.some(
+          (e) => e.date === item.entry.date && e.store === item.entry.store
+        );
+        if (!isDupe) {
+          await ctx.db.patch(existing._id, {
+            entries: [...existing.entries, item.entry],
+            updatedAt: now,
+          });
+        }
       } else {
         await ctx.db.insert("priceHistory", {
           ingredientKey: item.ingredientKey,

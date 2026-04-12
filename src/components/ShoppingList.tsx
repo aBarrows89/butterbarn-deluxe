@@ -31,10 +31,26 @@ interface ShoppingListProps {
   onUncheckAll: () => void;
 }
 
-function getBestStore(name: string, priceHistory: PriceEntry[]) {
-  const key = name.toLowerCase().split(" ")[0];
-  const matches = priceHistory.filter((p) => p.ingredientKey.startsWith(key));
-  if (!matches.length) return null;
+function getBestStore(name: string, priceHistory: PriceEntry[]): { store: string; avg: number } | "no_data" | null {
+  const nameLower = name.toLowerCase().trim();
+  const words = nameLower.split(/\s+/);
+
+  // Try exact match first, then partial matches
+  let matches = priceHistory.filter((p) => p.ingredientKey === nameLower);
+  if (!matches.length) {
+    // Try matching any word from the ingredient name
+    matches = priceHistory.filter((p) =>
+      words.some((w) => w.length > 2 && p.ingredientKey.includes(w))
+    );
+  }
+  if (!matches.length) {
+    // Try if price history key is contained in ingredient name
+    matches = priceHistory.filter((p) =>
+      nameLower.includes(p.ingredientKey) || p.ingredientKey.includes(words[0])
+    );
+  }
+
+  if (!matches.length) return "no_data";
 
   const storeMap: Record<string, { total: number; count: number }> = {};
   matches.forEach((m) =>
@@ -49,7 +65,7 @@ function getBestStore(name: string, priceHistory: PriceEntry[]) {
     .map(([store, { total, count }]) => ({ store, avg: total / count }))
     .sort((a, b) => a.avg - b.avg);
 
-  return avgs[0] || null;
+  return avgs[0] || "no_data";
 }
 
 export function ShoppingList({
@@ -80,7 +96,7 @@ export function ShoppingList({
   const estTotal = items.filter((i) => i.estimatedCost != null).reduce((s, i) => s + (i.estimatedCost || 0), 0);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden px-3 pt-2">
+    <div className="flex h-full flex-col overflow-hidden" style={{ padding: "16px 24px" }}>
       <div className="mb-2 flex shrink-0 items-center justify-between">
         <div>
           <div className="font-bold" style={{ fontFamily: "var(--font-lora), serif", fontSize: "clamp(14px, 4vw, 18px)" }}>
@@ -149,7 +165,7 @@ export function ShoppingList({
           </div>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto pb-16">
           {Object.entries(grouped).map(([cat, categoryItems]) => (
             <div key={cat} className="mb-3">
               <div className="mb-1 flex items-center gap-2">
@@ -170,12 +186,13 @@ export function ShoppingList({
                   <div
                     key={item.id}
                     onClick={() => onToggleItem(item.id)}
-                    className="mb-1 flex cursor-pointer items-start gap-2 rounded-xl border px-2 py-2 transition-colors"
+                    className="mb-2 flex cursor-pointer items-start gap-3 rounded-2xl transition-colors"
                     style={{
                       background: item.checked ? "#F5F0E8" : T.card,
-                      borderColor: T.border,
-                      boxShadow: item.checked ? "none" : T.shadow,
+                      border: `1.5px solid ${T.border}`,
+                      boxShadow: item.checked ? "none" : "0 2px 8px rgba(0,0,0,0.08)",
                       opacity: item.checked ? 0.5 : 1,
+                      padding: "12px 14px",
                     }}
                   >
                     <div
@@ -224,9 +241,14 @@ export function ShoppingList({
                           🍽 {item.meal}
                         </div>
                       )}
-                      {best && (
+                      {best && best !== "no_data" && (
                         <div className="font-bold" style={{ color: T.green, fontSize: "clamp(8px, 2vw, 10px)" }}>
                           🏷 Best at {best.store} · ${best.avg.toFixed(2)}
+                        </div>
+                      )}
+                      {best === "no_data" && item.category !== "Household" && (
+                        <div style={{ color: T.muted, fontSize: "clamp(7px, 1.8vw, 9px)" }}>
+                          No price data
                         </div>
                       )}
                     </div>

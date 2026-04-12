@@ -1,6 +1,7 @@
 "use client";
 
-import { T, DAYS_FULL, DAYS_SHORT, MEAL_TYPES, MEAL_ICONS, getWeekDateRange, getCurrentWeekId, type DayFull, type MealType } from "@/lib/constants";
+import { useRef } from "react";
+import { T, DAYS_FULL, DAYS_SHORT, getWeekDateRange, getCurrentWeekId, type DayFull, type MealType } from "@/lib/constants";
 
 interface Nutrition {
   calories: number;
@@ -24,35 +25,13 @@ interface MealGridProps {
   onWeekChange: (direction: -1 | 1) => void;
 }
 
-function MacroBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+function Stars({ count, max = 5 }: { count: number; max?: number }) {
   return (
-    <div className="flex-1">
-      <div
-        className="mb-0.5 text-[9.5px] font-extrabold uppercase tracking-wide"
-        style={{ color, letterSpacing: 0.5 }}
-      >
-        {label}
-      </div>
-      <div className="mb-0.5 h-1 overflow-hidden rounded-full" style={{ background: T.border }}>
-        <div
-          className="h-full rounded-full transition-all duration-400"
-          style={{ width: `${pct}%`, background: color }}
-        />
-      </div>
-      <div className="text-[11px] font-bold" style={{ color }}>
-        {value}g
-      </div>
-    </div>
-  );
-}
-
-function NutritionBadge({ n }: { n?: Nutrition }) {
-  if (!n?.calories) return null;
-  return (
-    <div className="mt-0.5 text-[8.5px] font-bold tracking-wide" style={{ color: T.calories }}>
-      {n.calories} cal
-    </div>
+    <span className="inline-flex gap-0.5">
+      {Array.from({ length: max }, (_, i) => (
+        <span key={i} style={{ color: i < count ? T.butter : T.border, fontSize: "10px" }}>★</span>
+      ))}
+    </span>
   );
 }
 
@@ -64,8 +43,6 @@ export function MealGrid({
   loading,
   loadLabel,
   onPlanFullWeek,
-  onPlanDinners,
-  onPlanLunches,
   onCellClick,
   onDayClick,
   onWeekChange,
@@ -74,6 +51,48 @@ export function MealGrid({
   const isCurrentWeek = weekId === currentWeekId;
   const { start, end } = getWeekDateRange(weekId);
   const monthFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+  const dayFormat = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
+
+  // Get dates for each day of the week
+  const weekDates = DAYS_FULL.map((_, i) => {
+    const date = new Date(start);
+    date.setDate(date.getDate() + i);
+    return date;
+  });
+
+  // Today's index (0-6, or -1 if today is not in this week)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to midnight for comparison
+  const todayIndex = weekDates.findIndex(d => {
+    const compareDate = new Date(d);
+    compareDate.setHours(0, 0, 0, 0);
+    return compareDate.getTime() === today.getTime();
+  });
+
+  // Swipe handling
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
+
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      onWeekChange(deltaX > 0 ? -1 : 1);
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   // Weekly nutrition totals
   const weeklyNutrition = Object.values(nutrition).reduce(
@@ -89,188 +108,149 @@ export function MealGrid({
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
-  const getRating = (day: DayFull, meal: MealType) => {
-    const key = `${weekId}-${day}-${meal}`;
-    return ratings[key] ?? { prep: 0, taste: 0 };
-  };
+  const plannedCount = DAYS_FULL.filter(day => meals[day]?.Dinner).length;
 
   return (
-    <div className="flex h-full flex-col overflow-hidden px-2.5 pt-2">
+    <div
+      className="flex h-full flex-col overflow-hidden"
+      style={{ padding: "16px 24px" }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Week navigation */}
-      <div className="mb-1.5 flex shrink-0 items-center justify-between">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <button
           onClick={() => onWeekChange(-1)}
-          className="cursor-pointer rounded-lg border-none bg-transparent p-1 font-bold"
-          style={{ color: T.butter, fontSize: "clamp(14px, 3.5vw, 18px)" }}
+          className="cursor-pointer rounded-full border-none flex items-center justify-center"
+          style={{ background: T.butterL, color: T.butterD, width: 36, height: 36, fontSize: 18 }}
         >
           ←
         </button>
         <div className="text-center">
-          <div className="font-bold" style={{ fontSize: "clamp(11px, 2.8vw, 14px)", color: T.brown }}>
+          <div className="font-bold" style={{ fontFamily: "var(--font-lora), serif", fontSize: 16, color: T.brown }}>
             {monthFormat.format(start)} – {monthFormat.format(end)}
           </div>
           {isCurrentWeek && (
-            <div className="font-semibold" style={{ fontSize: "clamp(8px, 2vw, 10px)", color: T.butter }}>
+            <div className="font-semibold" style={{ fontSize: 11, color: T.butter }}>
               This Week
             </div>
           )}
         </div>
         <button
           onClick={() => onWeekChange(1)}
-          className="cursor-pointer rounded-lg border-none bg-transparent p-1 font-bold"
-          style={{ color: T.butter, fontSize: "clamp(14px, 3.5vw, 18px)" }}
+          className="cursor-pointer rounded-full border-none flex items-center justify-center"
+          style={{ background: T.butterL, color: T.butterD, width: 36, height: 36, fontSize: 18 }}
         >
           →
         </button>
       </div>
 
-      {/* Quick chips */}
-      <div className="mb-1.5 flex shrink-0 gap-1.5 overflow-x-auto">
-        <button
-          onClick={onPlanFullWeek}
-          disabled={loading}
-          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
-          style={{
-            background: loading ? T.muted : `linear-gradient(135deg,${T.butter},#E8A010)`,
-            color: loading ? "#fff" : T.brown,
-            boxShadow: loading ? "none" : "0 2px 8px rgba(212,146,10,0.35)",
-            padding: "clamp(4px, 1vh, 8px) clamp(8px, 2vw, 14px)",
-            fontSize: "clamp(9px, 2.2vw, 12px)",
-          }}
-        >
-          {loading ? loadLabel : "📅 Plan Week"}
-        </button>
-        <button
-          onClick={onPlanDinners}
-          disabled={loading}
-          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full border font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
-          style={{
-            background: T.card,
-            color: T.brown,
-            borderColor: T.border,
-            padding: "clamp(4px, 1vh, 8px) clamp(8px, 2vw, 14px)",
-            fontSize: "clamp(9px, 2.2vw, 12px)",
-          }}
-        >
-          🌙 Dinners
-        </button>
-        <button
-          onClick={onPlanLunches}
-          disabled={loading}
-          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full border font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
-          style={{
-            background: T.card,
-            color: T.brown,
-            borderColor: T.border,
-            padding: "clamp(4px, 1vh, 8px) clamp(8px, 2vw, 14px)",
-            fontSize: "clamp(9px, 2.2vw, 12px)",
-          }}
-        >
-          ☀️ Lunches
-        </button>
+      {/* Plan button */}
+      <button
+        onClick={onPlanFullWeek}
+        disabled={loading}
+        className="mb-3 shrink-0 cursor-pointer rounded-2xl border-none font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
+        style={{
+          background: loading ? T.muted : `linear-gradient(135deg, ${T.butter}, #E8A010)`,
+          color: loading ? "#fff" : T.brown,
+          boxShadow: loading ? "none" : "0 4px 16px rgba(212,146,10,0.35)",
+          padding: "14px 20px",
+          fontSize: 15,
+        }}
+      >
+        {loading ? `🧈 ${loadLabel}` : `🌙 Plan This Week's Dinners`}
+      </button>
+
+      {/* Stats row */}
+      <div className="mb-3 flex shrink-0 gap-2">
+        <div className="flex-1 rounded-2xl text-center" style={{ background: T.greenL, padding: "10px 12px" }}>
+          <div className="text-lg font-extrabold" style={{ color: T.green }}>{plannedCount}/7</div>
+          <div className="text-[10px] font-semibold" style={{ color: T.muted }}>Planned</div>
+        </div>
+        {weeklyNutrition.calories > 0 && (
+          <div className="flex-1 rounded-2xl text-center" style={{ background: T.butterL, padding: "10px 12px" }}>
+            <div className="text-lg font-extrabold" style={{ color: T.butterD }}>{Math.round(weeklyNutrition.calories / 7)}</div>
+            <div className="text-[10px] font-semibold" style={{ color: T.muted }}>Cal/Day</div>
+          </div>
+        )}
       </div>
 
-      {/* Weekly nutrition summary */}
-      {weeklyNutrition.calories > 0 && (
-        <div
-          className="mb-2 shrink-0 rounded-xl border p-2"
-          style={{ background: T.card, borderColor: T.border, boxShadow: T.shadow }}
-        >
-          <div
-            className="mb-2 text-[10px] font-extrabold uppercase tracking-wider"
-            style={{ color: T.muted, letterSpacing: 1 }}
-          >
-            Weekly Avg Per Day · Per Person
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="mr-1.5 shrink-0 text-center">
-              <div className="text-xl font-extrabold leading-none" style={{ color: T.calories }}>
-                {Math.round(weeklyNutrition.calories / 7)}
-              </div>
-              <div
-                className="mt-0.5 text-[9px] font-bold uppercase tracking-wide"
-                style={{ color: T.muted }}
-              >
-                cal/day
-              </div>
-            </div>
-            <div className="flex flex-1 gap-2">
-              <MacroBar label="Protein" value={Math.round(weeklyNutrition.protein / 7)} max={200} color={T.protein} />
-              <MacroBar label="Carbs" value={Math.round(weeklyNutrition.carbs / 7)} max={300} color={T.carbs} />
-              <MacroBar label="Fat" value={Math.round(weeklyNutrition.fat / 7)} max={100} color={T.fat} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Dinner cards */}
+      <div className="min-h-0 flex-1 overflow-y-auto" style={{ paddingBottom: 100 }}>
+        {DAYS_FULL.map((day, i) => {
+          const dinner = meals[day]?.Dinner || "";
+          const isToday = i === todayIndex;
+          const isPast = isCurrentWeek && i < todayIndex;
+          const nKey = `${day}-Dinner`;
+          const n = nutrition[nKey];
+          const rating = ratings[`${weekId}-${day}-Dinner`];
 
-      {/* Grid container */}
-      <div className="flex min-h-0 flex-1 flex-col gap-0.5">
-        {/* Grid header */}
-        <div className="grid shrink-0 grid-cols-[36px_repeat(7,1fr)] gap-0.5">
-          <div />
-          {DAYS_FULL.map((d, i) => (
-            <button
-              key={d}
-              onClick={() => onDayClick(d)}
-              className="cursor-pointer rounded-lg border border-transparent bg-transparent p-0.5 text-center font-extrabold uppercase tracking-wide transition-colors hover:border-[#EDE3D8]"
-              style={{ color: T.butter, fontSize: "clamp(7px, 2vw, 9px)" }}
+          return (
+            <div
+              key={day}
+              onClick={() => dinner ? onCellClick(day, "Dinner") : onDayClick(day)}
+              className="mb-2 cursor-pointer rounded-2xl transition-all active:scale-[0.98]"
+              style={{
+                background: dinner ? T.card : (isToday ? T.butterL : T.bg),
+                border: `2px solid ${isToday ? T.butter : dinner ? T.border : "transparent"}`,
+                boxShadow: dinner ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                padding: "14px 16px",
+                opacity: isPast && !dinner ? 0.5 : 1,
+              }}
             >
-              {DAYS_SHORT[i]}
-            </button>
-          ))}
-        </div>
-
-        {/* Meal rows */}
-        {MEAL_TYPES.map((meal) => (
-          <div key={meal} className="grid min-h-0 flex-1 grid-cols-[36px_repeat(7,1fr)] gap-0.5">
-            <div className="flex flex-col items-center justify-center gap-0.5">
-              <span style={{ fontSize: "clamp(10px, 2.5vw, 14px)" }}>{MEAL_ICONS[meal]}</span>
-              <span
-                className="font-extrabold uppercase tracking-tight"
-                style={{ color: T.muted, fontSize: "clamp(6px, 1.5vw, 8px)" }}
-              >
-                {meal.slice(0, 3)}
-              </span>
-            </div>
-            {DAYS_FULL.map((day) => {
-              const val = meals[day]?.[meal] || "";
-              const nk = `${day}-${meal}`;
-              const n = nutrition[nk];
-              const rating = getRating(day, meal);
-              return (
-                <div
-                  key={day}
-                  onClick={() => onCellClick(day, meal)}
-                  className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border transition-all active:scale-95"
-                  style={{
-                    background: val ? T.greenL : T.card,
-                    borderColor: val ? T.checked : T.border,
-                    boxShadow: val ? "none" : T.shadow,
-                    padding: "2px",
-                  }}
-                >
-                  <span
-                    className="w-full overflow-hidden text-center leading-tight"
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {/* Day indicator */}
+                  <div
+                    className="flex flex-col items-center justify-center rounded-xl"
                     style={{
-                      color: val ? T.brown : "#D0C4BB",
-                      fontSize: "clamp(6px, 1.6vw, 9px)",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      wordBreak: "break-word",
+                      background: isToday ? T.butter : (dinner ? T.greenL : T.card),
+                      width: 44,
+                      height: 44,
                     }}
                   >
-                    {val || "+"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+                    <div className="text-[10px] font-bold uppercase" style={{ color: isToday ? "#fff" : T.muted }}>
+                      {DAYS_SHORT[i]}
+                    </div>
+                    <div className="text-sm font-extrabold" style={{ color: isToday ? "#fff" : T.brown }}>
+                      {weekDates[i].getDate()}
+                    </div>
+                  </div>
 
-      <div className="shrink-0 py-1 text-center" style={{ color: T.muted, fontSize: "clamp(9px, 2.5vw, 11px)" }}>
-        Tap cell to edit · 🧈 Ask Butter
+                  {/* Meal info */}
+                  <div className="flex-1 min-w-0">
+                    {dinner ? (
+                      <>
+                        <div className="font-bold capitalize" style={{ color: T.brown, fontSize: 14 }}>
+                          {dinner}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {n?.calories && (
+                            <span className="text-[11px] font-semibold" style={{ color: T.calories }}>
+                              {n.calories} cal
+                            </span>
+                          )}
+                          {rating?.taste ? (
+                            <Stars count={rating.taste} />
+                          ) : null}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="font-semibold" style={{ color: T.muted, fontSize: 13 }}>
+                        {isToday ? "What's for dinner tonight?" : "Tap to plan"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div style={{ color: dinner ? T.butter : T.muted, fontSize: 18 }}>
+                  →
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

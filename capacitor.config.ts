@@ -15,6 +15,11 @@ const config: CapacitorConfig = {
       overlaysWebView: false,
     },
   },
+  // Uncomment for live reload during development:
+  // server: {
+  //   url: 'http://192.168.40.225:3000',
+  //   cleartext: true,
+  // },
 };
 
 export default config;

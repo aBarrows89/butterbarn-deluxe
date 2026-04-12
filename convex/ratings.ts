@@ -22,6 +22,47 @@ export const getAllForWeek = query({
   },
 });
 
+// Get all ratings for AI feedback loop - summarizes what meals are liked/disliked
+export const getRatingSummary = query({
+  args: {},
+  handler: async (ctx) => {
+    const allRatings = await ctx.db.query("ratings").collect();
+
+    // Group ratings by meal name and calculate averages
+    const mealStats: Record<string, { totalPrep: number; totalTaste: number; count: number }> = {};
+
+    for (const r of allRatings) {
+      const name = r.mealName.toLowerCase().trim();
+      if (!mealStats[name]) {
+        mealStats[name] = { totalPrep: 0, totalTaste: 0, count: 0 };
+      }
+      mealStats[name].totalPrep += r.prep;
+      mealStats[name].totalTaste += r.taste;
+      mealStats[name].count++;
+    }
+
+    const favorites: string[] = [];
+    const disliked: string[] = [];
+    const easyMeals: string[] = [];
+    const hardMeals: string[] = [];
+
+    for (const [name, stats] of Object.entries(mealStats)) {
+      const avgTaste = stats.totalTaste / stats.count;
+      const avgPrep = stats.totalPrep / stats.count;
+
+      // Taste ratings: 4-5 = favorites, 1-2 = disliked
+      if (avgTaste >= 4) favorites.push(name);
+      else if (avgTaste <= 2 && stats.count >= 1) disliked.push(name);
+
+      // Prep ratings: 4-5 = easy, 1-2 = hard
+      if (avgPrep >= 4) easyMeals.push(name);
+      else if (avgPrep <= 2) hardMeals.push(name);
+    }
+
+    return { favorites, disliked, easyMeals, hardMeals };
+  },
+});
+
 // ============ MUTATIONS ============
 
 export const upsert = mutation({

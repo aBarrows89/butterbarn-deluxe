@@ -7,13 +7,14 @@ interface HeaderProps {
   grandmaMode: boolean;
   onGuestsChange: (delta: number) => void;
   onGrandmaModeToggle: () => void;
+  onSettingsClick: () => void;
 }
 
-export function Header({ guests, grandmaMode, onGuestsChange, onGrandmaModeToggle }: HeaderProps) {
+export function Header({ guests, grandmaMode, onGuestsChange, onGrandmaModeToggle, onSettingsClick }: HeaderProps) {
   return (
     <div
       className="flex shrink-0 items-center justify-between"
-      style={{ background: T.headerBg, padding: "clamp(8px, 2vh, 12px) clamp(12px, 3vw, 16px)" }}
+      style={{ background: T.headerBg, padding: "clamp(12px, 3vh, 16px) clamp(20px, 5vw, 24px)" }}
     >
       <div className="flex items-center gap-1.5">
         <span style={{ fontSize: "clamp(18px, 5vw, 24px)", filter: "drop-shadow(0 2px 6px rgba(212,146,10,0.5))" }}>
@@ -30,6 +31,18 @@ export function Header({ guests, grandmaMode, onGuestsChange, onGrandmaModeToggl
       </div>
 
       <div className="flex items-center gap-1.5">
+        <button
+          onClick={onSettingsClick}
+          className="flex cursor-pointer items-center justify-center rounded-full border-none"
+          style={{
+            background: "rgba(212,146,10,0.08)",
+            width: "clamp(28px, 7vw, 34px)",
+            height: "clamp(28px, 7vw, 34px)",
+          }}
+        >
+          <span style={{ fontSize: "clamp(12px, 3vw, 16px)" }}>⚙️</span>
+        </button>
+
         <button
           onClick={onGrandmaModeToggle}
           className="flex cursor-pointer items-center gap-0.5 rounded-full border transition-all"
