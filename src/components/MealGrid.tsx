@@ -90,42 +90,48 @@ export function MealGrid({
   return (
     <div className="flex h-full flex-col overflow-hidden px-2.5 pt-2">
       {/* Quick chips */}
-      <div className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-0.5">
+      <div className="mb-1.5 flex shrink-0 gap-1.5 overflow-x-auto">
         <button
           onClick={onPlanFullWeek}
           disabled={loading}
-          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
+          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
           style={{
             background: loading ? T.muted : `linear-gradient(135deg,${T.butter},#E8A010)`,
             color: loading ? "#fff" : T.brown,
-            boxShadow: loading ? "none" : "0 3px 10px rgba(212,146,10,0.35)",
+            boxShadow: loading ? "none" : "0 2px 8px rgba(212,146,10,0.35)",
+            padding: "clamp(4px, 1vh, 8px) clamp(8px, 2vw, 14px)",
+            fontSize: "clamp(9px, 2.2vw, 12px)",
           }}
         >
-          📅 Plan Full Week
+          {loading ? loadLabel : "📅 Plan Week"}
         </button>
         <button
           onClick={onPlanDinners}
           disabled={loading}
-          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
+          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full border font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
           style={{
-            background: loading ? T.muted : T.card,
-            color: loading ? "#fff" : T.brown,
+            background: T.card,
+            color: T.brown,
             borderColor: T.border,
+            padding: "clamp(4px, 1vh, 8px) clamp(8px, 2vw, 14px)",
+            fontSize: "clamp(9px, 2.2vw, 12px)",
           }}
         >
-          🌙 Dinners Only
+          🌙 Dinners
         </button>
         <button
           onClick={onPlanLunches}
           disabled={loading}
-          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full border px-4 py-2 text-xs font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
+          className="shrink-0 cursor-pointer whitespace-nowrap rounded-full border font-bold transition-opacity disabled:cursor-default disabled:opacity-50"
           style={{
-            background: loading ? T.muted : T.card,
-            color: loading ? "#fff" : T.brown,
+            background: T.card,
+            color: T.brown,
             borderColor: T.border,
+            padding: "clamp(4px, 1vh, 8px) clamp(8px, 2vw, 14px)",
+            fontSize: "clamp(9px, 2.2vw, 12px)",
           }}
         >
-          ☀️ Lunches Only
+          ☀️ Lunches
         </button>
       </div>
 
@@ -200,29 +206,27 @@ export function MealGrid({
                 <div
                   key={day}
                   onClick={() => onCellClick(day, meal)}
-                  className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border p-0.5 transition-all active:scale-95"
+                  className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border transition-all active:scale-95"
                   style={{
                     background: val ? T.greenL : T.card,
                     borderColor: val ? T.checked : T.border,
                     boxShadow: val ? "none" : T.shadow,
+                    padding: "2px",
                   }}
                 >
                   <span
-                    className="line-clamp-2 text-center leading-tight"
-                    style={{ color: val ? T.brown : "#D0C4BB", fontSize: "clamp(7px, 1.8vw, 10px)" }}
+                    className="w-full overflow-hidden text-center leading-tight"
+                    style={{
+                      color: val ? T.brown : "#D0C4BB",
+                      fontSize: "clamp(6px, 1.6vw, 9px)",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      wordBreak: "break-word",
+                    }}
                   >
                     {val || "+"}
                   </span>
-                  {n?.calories && (
-                    <div className="font-bold tracking-wide" style={{ color: T.calories, fontSize: "clamp(6px, 1.5vw, 9px)" }}>
-                      {n.calories}
-                    </div>
-                  )}
-                  {rating.taste > 0 && (
-                    <div style={{ color: T.butter, fontSize: "clamp(5px, 1.2vw, 7px)" }}>
-                      {"★".repeat(rating.taste)}
-                    </div>
-                  )}
                 </div>
               );
             })}

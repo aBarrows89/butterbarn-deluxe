@@ -45,30 +45,42 @@ async function callClaude(
     },
   ];
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      system,
-      messages,
-    }),
-  });
+  // Add timeout to prevent hanging
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-  if (!response.ok) {
-    const err = await response.text();
-    console.error("Claude API error:", err);
-    throw new Error("Failed to call Claude API");
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system,
+        messages,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("Claude API error:", err);
+      throw new Error("Failed to call Claude API");
+    }
+
+    const data = await response.json();
+    return data.content?.[0]?.text || "";
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
   }
-
-  const data = await response.json();
-  return data.content?.[0]?.text || "";
 }
 
 function buildPlanSystem(guests: number, extra: string = "") {
