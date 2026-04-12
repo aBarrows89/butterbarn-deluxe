@@ -95,13 +95,11 @@ export default function ButterBarnDeluxe() {
   const priceHistory = priceHistoryData ?? [];
   const receipts = receiptsData ?? [];
 
-  const ratings = (ratingsData ?? []).reduce(
-    (acc, r) => {
-      acc[r.mealKey] = { prep: r.prep, taste: r.taste };
-      return acc;
-    },
-    {} as Record<string, { prep: number; taste: number }>
-  );
+  type RatingMap = Record<string, { prep: number; taste: number }>;
+  const ratings: RatingMap = {};
+  for (const r of ratingsData ?? []) {
+    ratings[r.mealKey] = { prep: r.prep, taste: r.taste };
+  }
 
   const setQuip = useCallback((q: string) => {
     setButterQuip(q);
