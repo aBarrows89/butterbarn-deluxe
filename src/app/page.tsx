@@ -145,19 +145,6 @@ export default function ButterBarnDeluxe() {
     setQuipKey((k) => k + 1);
   }, []);
 
-  // Initialize meal plan if it doesn't exist
-  useEffect(() => {
-    if (mealPlan === null) {
-      upsertMealPlan({
-        weekId,
-        meals: initEmptyMeals(),
-        nutrition: {},
-        guests: 3,
-        grandmaMode: false,
-      });
-    }
-  }, [mealPlan, weekId, upsertMealPlan]);
-
   // Android back button handler
   useEffect(() => {
     const handleBackButton = () => {
