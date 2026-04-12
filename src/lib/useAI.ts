@@ -344,7 +344,13 @@ STEP 1 - FIND THE TRANSACTION DATE (this is critical!):
 - DO NOT default to today (${today}) - find the actual printed date
 
 STEP 2 - Extract items:
-- Product name (simplify: "ORG BANANAS" → "Bananas")
+- Product name: NORMALIZE to common grocery terms for price tracking:
+  * Remove store brands/prefixes (Great Value, Kirkland, Simply Nature, etc.)
+  * Remove size/weight info (16oz, 1lb, etc.)
+  * Expand abbreviations: BNLS→Boneless, SKNLS→Skinless, CHKN→Chicken, BRST→Breast, ORG→Organic, GRN→Green, etc.
+  * Use consistent naming: "GLDN DLCS BNLS SKNLS CHKN BRST" → "Boneless Skinless Chicken Breast"
+  * Keep organic/specialty markers only if relevant: "ORG MILK" → "Organic Milk"
+  * Examples: "GV 2% MILK GAL" → "2% Milk", "FRSH GRND BEEF 80/20" → "Ground Beef 80/20"
 - Price (dollar amount on the right)
 - Skip subtotals, tax, payment info
 
