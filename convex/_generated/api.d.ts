@@ -11,6 +11,7 @@
 import type * as budgetGoals from "../budgetGoals.js";
 import type * as favorites from "../favorites.js";
 import type * as mealPlans from "../mealPlans.js";
+import type * as preferences from "../preferences.js";
 import type * as priceHistory from "../priceHistory.js";
 import type * as ratings from "../ratings.js";
 import type * as receipts from "../receipts.js";
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   budgetGoals: typeof budgetGoals;
   favorites: typeof favorites;
   mealPlans: typeof mealPlans;
+  preferences: typeof preferences;
   priceHistory: typeof priceHistory;
   ratings: typeof ratings;
   receipts: typeof receipts;

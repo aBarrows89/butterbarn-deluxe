@@ -47,7 +47,7 @@ async function callClaude(
 
   // Add timeout to prevent hanging
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+  const timeout = setTimeout(() => controller.abort(), 90000); // 90 second timeout
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -83,8 +83,25 @@ async function callClaude(
   }
 }
 
-function buildPlanSystem(guests: number, extra: string = "") {
-  return `${BUTTER_PERSONA}${extra}
+interface Preferences {
+  dislikes: string[];
+  allergies: string[];
+  avoidMeals: string[];
+}
+
+function buildPlanSystem(guests: number, prefs: Preferences, extra: string = "") {
+  let prefsText = "";
+  if (prefs.dislikes.length > 0) {
+    prefsText += `\nDISLIKES (DO NOT INCLUDE): ${prefs.dislikes.join(", ")}`;
+  }
+  if (prefs.allergies.length > 0) {
+    prefsText += `\nALLERGIES (NEVER INCLUDE): ${prefs.allergies.join(", ")}`;
+  }
+  if (prefs.avoidMeals.length > 0) {
+    prefsText += `\nMEALS TO AVOID (poorly rated): ${prefs.avoidMeals.join(", ")}`;
+  }
+
+  return `${BUTTER_PERSONA}${extra}${prefsText}
 Return ONLY valid JSON (no markdown, no extra text):
 {
   "butterQuip":"",
@@ -104,14 +121,15 @@ export function useAI() {
     async (
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
-      guests: number
+      guests: number,
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel("Planning the whole week...");
       try {
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: Plan a complete, varied, and delicious full week of meals for ${guests} people — breakfast, lunch, dinner, and snacks for all 7 days. Make it feel cohesive but varied. Think about the week as a whole.`,
-          buildPlanSystem(guests, "\nFocus: fill every single meal slot for all 7 days. Be creative, varied, and practical.")
+          buildPlanSystem(guests, prefs, "\nFocus: fill every single meal slot for all 7 days. Be creative, varied, and practical.")
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -130,14 +148,15 @@ export function useAI() {
     async (
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
-      guests: number
+      guests: number,
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel("Planning dinners...");
       try {
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: Plan a full week of varied, delicious dinners for ${guests} people. Keep any existing dinners already set.`,
-          buildPlanSystem(guests, "\nFocus: fill all dinner slots. Keep breakfasts and lunches as-is.")
+          buildPlanSystem(guests, prefs, "\nFocus: fill all dinner slots. Keep breakfasts and lunches as-is.")
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -156,14 +175,15 @@ export function useAI() {
     async (
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
-      guests: number
+      guests: number,
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel("Filling lunches...");
       try {
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: Fill in all lunches for the week for ${guests} people. Keep existing lunches. Make them quick, practical, and real.`,
-          buildPlanSystem(guests, "\nFocus: fill lunch slots only. Keep dinners and breakfasts unchanged.")
+          buildPlanSystem(guests, prefs, "\nFocus: fill lunch slots only. Keep dinners and breakfasts unchanged.")
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -184,7 +204,8 @@ export function useAI() {
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
       guests: number,
-      customPrompt: string = ""
+      customPrompt: string = "",
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel(`Planning ${day}...`);
@@ -194,7 +215,7 @@ export function useAI() {
           : `Plan all meals (breakfast, lunch, dinner, snacks) for ${day} for ${guests} people. Make them varied and delicious.`;
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: ${request}`,
-          buildPlanSystem(guests, `\nFocus: ONLY update the meals for ${day}. Leave all other days completely unchanged.`)
+          buildPlanSystem(guests, prefs, `\nFocus: ONLY update the meals for ${day}. Leave all other days completely unchanged.`)
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -214,14 +235,15 @@ export function useAI() {
       prompt: string,
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
-      guests: number
+      guests: number,
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel("Thinking...");
       try {
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: ${prompt}`,
-          buildPlanSystem(guests)
+          buildPlanSystem(guests, prefs)
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;

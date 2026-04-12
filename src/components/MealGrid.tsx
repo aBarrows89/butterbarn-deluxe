@@ -1,6 +1,6 @@
 "use client";
 
-import { T, DAYS_FULL, DAYS_SHORT, MEAL_TYPES, MEAL_ICONS, type DayFull, type MealType } from "@/lib/constants";
+import { T, DAYS_FULL, DAYS_SHORT, MEAL_TYPES, MEAL_ICONS, getWeekDateRange, getCurrentWeekId, type DayFull, type MealType } from "@/lib/constants";
 
 interface Nutrition {
   calories: number;
@@ -21,6 +21,7 @@ interface MealGridProps {
   onPlanLunches: () => void;
   onCellClick: (day: DayFull, meal: MealType) => void;
   onDayClick: (day: DayFull) => void;
+  onWeekChange: (direction: -1 | 1) => void;
 }
 
 function MacroBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
@@ -67,7 +68,13 @@ export function MealGrid({
   onPlanLunches,
   onCellClick,
   onDayClick,
+  onWeekChange,
 }: MealGridProps) {
+  const currentWeekId = getCurrentWeekId();
+  const isCurrentWeek = weekId === currentWeekId;
+  const { start, end } = getWeekDateRange(weekId);
+  const monthFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
   // Weekly nutrition totals
   const weeklyNutrition = Object.values(nutrition).reduce(
     (acc, n) => {
@@ -89,6 +96,34 @@ export function MealGrid({
 
   return (
     <div className="flex h-full flex-col overflow-hidden px-2.5 pt-2">
+      {/* Week navigation */}
+      <div className="mb-1.5 flex shrink-0 items-center justify-between">
+        <button
+          onClick={() => onWeekChange(-1)}
+          className="cursor-pointer rounded-lg border-none bg-transparent p-1 font-bold"
+          style={{ color: T.butter, fontSize: "clamp(14px, 3.5vw, 18px)" }}
+        >
+          ←
+        </button>
+        <div className="text-center">
+          <div className="font-bold" style={{ fontSize: "clamp(11px, 2.8vw, 14px)", color: T.brown }}>
+            {monthFormat.format(start)} – {monthFormat.format(end)}
+          </div>
+          {isCurrentWeek && (
+            <div className="font-semibold" style={{ fontSize: "clamp(8px, 2vw, 10px)", color: T.butter }}>
+              This Week
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => onWeekChange(1)}
+          className="cursor-pointer rounded-lg border-none bg-transparent p-1 font-bold"
+          style={{ color: T.butter, fontSize: "clamp(14px, 3.5vw, 18px)" }}
+        >
+          →
+        </button>
+      </div>
+
       {/* Quick chips */}
       <div className="mb-1.5 flex shrink-0 gap-1.5 overflow-x-auto">
         <button

@@ -80,31 +80,31 @@ export function ShoppingList({
   const estTotal = items.filter((i) => i.estimatedCost != null).reduce((s, i) => s + (i.estimatedCost || 0), 0);
 
   return (
-    <div className="px-3.5 pb-28 pt-3.5">
-      <div className="mb-2.5 flex items-center justify-between">
+    <div className="flex h-full flex-col overflow-hidden px-3 pt-2">
+      <div className="mb-2 flex shrink-0 items-center justify-between">
         <div>
-          <div className="text-lg font-bold" style={{ fontFamily: "var(--font-lora), serif" }}>
+          <div className="font-bold" style={{ fontFamily: "var(--font-lora), serif", fontSize: "clamp(14px, 4vw, 18px)" }}>
             Shopping List
           </div>
           {items.length > 0 && (
-            <div className="mt-0.5 text-[11.5px]" style={{ color: T.muted }}>
-              {remaining} of {items.length} remaining
+            <div style={{ color: T.muted, fontSize: "clamp(9px, 2.2vw, 12px)" }}>
+              {remaining} of {items.length} left
             </div>
           )}
         </div>
         {items.length > 0 && (
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
             <button
               onClick={onUncheckAll}
-              className="cursor-pointer rounded-full border px-2.5 py-1.5 text-[11.5px] font-semibold"
-              style={{ borderColor: T.border, background: T.card, color: T.muted }}
+              className="cursor-pointer rounded-full border font-semibold"
+              style={{ borderColor: T.border, background: T.card, color: T.muted, padding: "4px 10px", fontSize: "clamp(9px, 2.2vw, 11px)" }}
             >
               Reset
             </button>
             <button
               onClick={onClearChecked}
-              className="cursor-pointer rounded-full border-none px-2.5 py-1.5 text-[11.5px] font-bold"
-              style={{ background: T.butterL, color: T.butterD }}
+              className="cursor-pointer rounded-full border-none font-bold"
+              style={{ background: T.butterL, color: T.butterD, padding: "4px 10px", fontSize: "clamp(9px, 2.2vw, 11px)" }}
             >
               Clear ✓
             </button>
@@ -112,27 +112,29 @@ export function ShoppingList({
         )}
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div className="mb-2 flex shrink-0 flex-wrap gap-1">
         {(["All", "Food", "Household"] as const).map((f) => (
           <button
             key={f}
             onClick={() => onFilterChange(f)}
-            className="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold"
+            className="cursor-pointer rounded-full border font-bold"
             style={{
               background: listFilter === f ? (f === "Household" ? T.household : T.butter) : T.card,
               color: listFilter === f ? "#fff" : T.muted,
               borderColor: listFilter === f ? (f === "Household" ? T.household : T.butter) : T.border,
+              padding: "4px 10px",
+              fontSize: "clamp(9px, 2.2vw, 11px)",
             }}
           >
-            {f === "Household" ? "🏠 Household" : f === "Food" ? "🥦 Food" : "All"}
+            {f === "Household" ? "🏠" : f === "Food" ? "🥦" : "All"}
           </button>
         ))}
         <button
           onClick={onAddItemClick}
-          className="ml-auto cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold"
-          style={{ background: T.householdL, color: T.household, borderColor: `${T.household}40` }}
+          className="ml-auto cursor-pointer rounded-full border font-bold"
+          style={{ background: T.householdL, color: T.household, borderColor: `${T.household}40`, padding: "4px 10px", fontSize: "clamp(9px, 2.2vw, 11px)" }}
         >
-          + Add Item
+          + Add
         </button>
       </div>
 
@@ -147,18 +149,18 @@ export function ShoppingList({
           </div>
         </div>
       ) : (
-        <>
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {Object.entries(grouped).map(([cat, categoryItems]) => (
-            <div key={cat} className="mb-5">
-              <div className="mb-2 flex items-center gap-2">
+            <div key={cat} className="mb-3">
+              <div className="mb-1 flex items-center gap-2">
                 <span
-                  className="text-[10px] font-extrabold uppercase tracking-widest"
-                  style={{ color: cat === "Household" ? T.household : T.green }}
+                  className="font-extrabold uppercase tracking-wide"
+                  style={{ color: cat === "Household" ? T.household : T.green, fontSize: "clamp(8px, 2vw, 10px)" }}
                 >
                   {cat === "Household" ? "🏠 " + cat : cat}
                 </span>
                 <div className="h-px flex-1" style={{ background: cat === "Household" ? T.householdL : T.greenL }} />
-                <span className="text-[10px] font-semibold" style={{ color: T.muted }}>
+                <span className="font-semibold" style={{ color: T.muted, fontSize: "clamp(8px, 2vw, 10px)" }}>
                   {categoryItems.length}
                 </span>
               </div>
@@ -168,7 +170,7 @@ export function ShoppingList({
                   <div
                     key={item.id}
                     onClick={() => onToggleItem(item.id)}
-                    className="mb-1.5 flex cursor-pointer items-start gap-3 rounded-[15px] border px-3 py-3 transition-colors"
+                    className="mb-1 flex cursor-pointer items-start gap-2 rounded-xl border px-2 py-2 transition-colors"
                     style={{
                       background: item.checked ? "#F5F0E8" : T.card,
                       borderColor: T.border,
@@ -177,18 +179,20 @@ export function ShoppingList({
                     }}
                   >
                     <div
-                      className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-[2.5px] transition-all"
+                      className="mt-0.5 flex shrink-0 items-center justify-center rounded-md border-2 transition-all"
                       style={{
+                        width: "clamp(18px, 4.5vw, 22px)",
+                        height: "clamp(18px, 4.5vw, 22px)",
                         borderColor: item.checked ? T.green : T.border,
                         background: item.checked ? T.green : "transparent",
                       }}
                     >
                       {item.checked && (
-                        <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+                        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
                           <polyline
                             points="2,6 5,9 10,3"
                             stroke="#fff"
-                            strokeWidth="2.2"
+                            strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
@@ -196,39 +200,40 @@ export function ShoppingList({
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-1.5">
+                      <div className="flex flex-wrap items-baseline gap-1">
                         <span
-                          className="text-[13.5px] font-bold"
+                          className="font-bold"
                           style={{
                             textDecoration: item.checked ? "line-through" : "none",
                             color: item.checked ? T.muted : T.brown,
+                            fontSize: "clamp(11px, 2.8vw, 13px)",
                           }}
                         >
                           {item.ingredient}
                         </span>
-                        <span className="text-[11.5px]" style={{ color: T.muted }}>
+                        <span style={{ color: T.muted, fontSize: "clamp(9px, 2.2vw, 11px)" }}>
                           {item.quantity}
                           {item.unit ? ` ${item.unit}` : ""}
                         </span>
                       </div>
-                      {item.category !== "Household" && (
+                      {item.category !== "Household" && item.meal && (
                         <div
-                          className="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-[10.5px] font-semibold"
-                          style={{ color: T.terra }}
+                          className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold"
+                          style={{ color: T.terra, fontSize: "clamp(8px, 2vw, 10px)" }}
                         >
                           🍽 {item.meal}
                         </div>
                       )}
                       {best && (
-                        <div className="mt-0.5 text-[10px] font-bold" style={{ color: T.green }}>
-                          🏷 Best at {best.store} · avg ${best.avg.toFixed(2)}
+                        <div className="font-bold" style={{ color: T.green, fontSize: "clamp(8px, 2vw, 10px)" }}>
+                          🏷 Best at {best.store} · ${best.avg.toFixed(2)}
                         </div>
                       )}
                     </div>
                     {item.estimatedCost != null && (
                       <div
-                        className="shrink-0 rounded-lg px-2 py-0.5 text-xs font-extrabold"
-                        style={{ background: T.greenL, color: T.green }}
+                        className="shrink-0 rounded-md px-1.5 py-0.5 font-extrabold"
+                        style={{ background: T.greenL, color: T.green, fontSize: "clamp(9px, 2.2vw, 11px)" }}
                       >
                         ${item.estimatedCost.toFixed(2)}
                       </div>
@@ -240,7 +245,7 @@ export function ShoppingList({
           ))}
           {items.some((i) => i.estimatedCost != null) && (
             <div
-              className="flex items-center justify-between rounded-2xl border p-4"
+              className="mb-2 flex items-center justify-between rounded-2xl border p-3"
               style={{
                 background: "linear-gradient(135deg,#FDF3D8,#FFF9EE)",
                 borderColor: "#EDD98A",
@@ -255,12 +260,12 @@ export function ShoppingList({
                   From scanned receipts
                 </div>
               </div>
-              <div className="text-2xl font-bold" style={{ fontFamily: "var(--font-lora), serif", color: T.butterD }}>
+              <div className="text-xl font-bold" style={{ fontFamily: "var(--font-lora), serif", color: T.butterD }}>
                 ${estTotal.toFixed(2)}
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

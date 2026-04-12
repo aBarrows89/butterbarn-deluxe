@@ -15,11 +15,11 @@ interface PriceTrackerProps {
 export function PriceTracker({ priceHistory }: PriceTrackerProps) {
   if (priceHistory.length === 0) {
     return (
-      <div className="px-3.5 pb-28 pt-3.5">
-        <div className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-lora), serif" }}>
+      <div className="flex h-full flex-col overflow-hidden px-3 pt-2">
+        <div className="mb-1 font-bold" style={{ fontFamily: "var(--font-lora), serif", fontSize: "clamp(14px, 4vw, 18px)" }}>
           Price Tracker
         </div>
-        <div className="mb-3.5 text-[12.5px]" style={{ color: T.muted }}>
+        <div className="mb-2" style={{ color: T.muted, fontSize: "clamp(10px, 2.5vw, 13px)" }}>
           Prices tracked per store so you always know the best deal.
         </div>
         <div className="px-5 py-12 text-center" style={{ color: T.muted }}>
@@ -27,7 +27,7 @@ export function PriceTracker({ priceHistory }: PriceTrackerProps) {
           <div className="mb-1.5 text-base" style={{ fontFamily: "var(--font-lora), serif", color: T.brown }}>
             Nothing tracked yet
           </div>
-          <div className="text-[13px] leading-loose">
+          <div className="text-[12.5px] leading-loose">
             Scan receipts and Butter will track
             <br />
             prices across Aldi, Giant Eagle, and more.
@@ -38,14 +38,15 @@ export function PriceTracker({ priceHistory }: PriceTrackerProps) {
   }
 
   return (
-    <div className="px-3.5 pb-28 pt-3.5">
-      <div className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-lora), serif" }}>
+    <div className="flex h-full flex-col overflow-hidden px-3 pt-2">
+      <div className="mb-1 shrink-0 font-bold" style={{ fontFamily: "var(--font-lora), serif", fontSize: "clamp(14px, 4vw, 18px)" }}>
         Price Tracker
       </div>
-      <div className="mb-3.5 text-[12.5px]" style={{ color: T.muted }}>
+      <div className="mb-2 shrink-0" style={{ color: T.muted, fontSize: "clamp(10px, 2.5vw, 13px)" }}>
         Prices tracked per store so you always know the best deal.
       </div>
 
+      <div className="min-h-0 flex-1 overflow-y-auto">
       {priceHistory
         .sort((a, b) => a.ingredientKey.localeCompare(b.ingredientKey))
         .map((item) => {
@@ -132,6 +133,7 @@ export function PriceTracker({ priceHistory }: PriceTrackerProps) {
             </div>
           );
         })}
+      </div>
     </div>
   );
 }

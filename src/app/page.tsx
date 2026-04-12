@@ -7,6 +7,7 @@ import { getDailyGreeting } from "@/lib/butterGreetings";
 import {
   T,
   getCurrentWeekId,
+  getWeekOffset,
   initEmptyMeals,
   type DayFull,
   type MealType,
@@ -24,8 +25,22 @@ import { EditSheet } from "@/components/sheets/EditSheet";
 import { MealDetailSheet } from "@/components/sheets/MealDetailSheet";
 import { AddItemSheet } from "@/components/sheets/AddItemSheet";
 import { DaySheet } from "@/components/sheets/DaySheet";
+import { PreviewSheet } from "@/components/sheets/PreviewSheet";
 
 type TabType = "plan" | "list" | "receipt" | "prices";
+
+interface PlanResponse {
+  butterQuip: string;
+  meals: Record<string, Record<string, string>>;
+  nutrition: Record<string, { calories: number; protein: number; carbs: number; fat: number }>;
+  shoppingList: Array<{
+    ingredient: string;
+    quantity: string;
+    unit: string;
+    meal: string;
+    category: string;
+  }>;
+}
 
 interface ShoppingItem {
   id: string;
@@ -40,7 +55,7 @@ interface ShoppingItem {
 }
 
 export default function ButterBarnDeluxe() {
-  const weekId = getCurrentWeekId();
+  const [weekId, setWeekId] = useState(getCurrentWeekId);
 
   // Convex queries
   const mealPlan = useQuery(api.mealPlans.getByWeek, { weekId });
@@ -48,6 +63,7 @@ export default function ButterBarnDeluxe() {
   const ratingsData = useQuery(api.ratings.getAllForWeek, { weekId });
   const priceHistoryData = useQuery(api.priceHistory.getAll);
   const receiptsData = useQuery(api.receipts.getRecent, { limit: 10 });
+  const preferencesData = useQuery(api.preferences.get);
 
   // Convex mutations
   const upsertMealPlan = useMutation(api.mealPlans.upsert);
@@ -61,6 +77,8 @@ export default function ButterBarnDeluxe() {
   const upsertRating = useMutation(api.ratings.upsert);
   const addPriceEntries = useMutation(api.priceHistory.addMultipleEntries);
   const addReceipt = useMutation(api.receipts.add);
+  const addAvoidMeal = useMutation(api.preferences.addAvoidMeal);
+  const addDislike = useMutation(api.preferences.addDislike);
 
   // Local state
   const [tab, setTab] = useState<TabType>("plan");
@@ -81,6 +99,7 @@ export default function ButterBarnDeluxe() {
   const [addItemSheet, setAddItemSheet] = useState(false);
   const [daySheet, setDaySheet] = useState<{ day: DayFull } | null>(null);
   const [listFilter, setListFilter] = useState<"All" | "Food" | "Household">("All");
+  const [pendingPlan, setPendingPlan] = useState<PlanResponse | null>(null);
 
   // AI hook
   const { loading, loadLabel, planFullWeek, planDinners, planLunches, planDay, handlePrompt, analyzeReceipt } =
@@ -94,6 +113,7 @@ export default function ButterBarnDeluxe() {
   const list: ShoppingItem[] = shoppingListData?.items ?? [];
   const priceHistory = priceHistoryData ?? [];
   const receipts = receiptsData ?? [];
+  const preferences = preferencesData ?? { dislikes: [], allergies: [], avoidMeals: [] };
 
   type RatingMap = Record<string, { prep: number; taste: number }>;
   const ratings: RatingMap = {};
@@ -134,84 +154,68 @@ export default function ButterBarnDeluxe() {
     updateSettings({ weekId, guests: newGuests, grandmaMode: newGrandmaMode });
   }, [grandmaMode, guests, weekId, updateSettings]);
 
+  const handleWeekChange = useCallback((direction: -1 | 1) => {
+    setWeekId((current) => getWeekOffset(current, direction));
+  }, []);
+
+  // Accept a pending plan
+  const handleAcceptPlan = useCallback(async () => {
+    if (!pendingPlan) return;
+    await upsertMealPlan({
+      weekId,
+      meals: pendingPlan.meals as typeof meals,
+      nutrition: pendingPlan.nutrition,
+      guests,
+      grandmaMode,
+    });
+    if (pendingPlan.shoppingList) {
+      const items = pendingPlan.shoppingList.map((item, i) => ({
+        id: `i${Date.now()}${i}`,
+        ...item,
+        checked: false,
+      }));
+      const householdItems = list.filter((i) => i.category === "Household");
+      await upsertShoppingList({ weekId, items: [...items, ...householdItems] });
+    }
+    if (pendingPlan.butterQuip) setQuip(pendingPlan.butterQuip);
+    setPendingPlan(null);
+  }, [pendingPlan, weekId, meals, guests, grandmaMode, list, upsertMealPlan, upsertShoppingList, setQuip]);
+
+  const handleRejectPlan = useCallback(() => {
+    setPendingPlan(null);
+    setQuip("No problem, sugar. Let's try something different!");
+  }, [setQuip]);
+
   const handlePlanFullWeek = useCallback(async () => {
-    const result = await planFullWeek(meals, list, guests);
+    const result = await planFullWeek(meals, list, guests, preferences);
     if (result) {
-      await upsertMealPlan({
-        weekId,
-        meals: result.meals as typeof meals,
-        nutrition: result.nutrition,
-        guests,
-        grandmaMode,
-      });
-      if (result.shoppingList) {
-        const items = result.shoppingList.map((item, i) => ({
-          id: `i${Date.now()}${i}`,
-          ...item,
-          checked: false,
-        }));
-        const householdItems = list.filter((i) => i.category === "Household");
-        await upsertShoppingList({ weekId, items: [...items, ...householdItems] });
-      }
-      if (result.butterQuip) setQuip(result.butterQuip);
+      setPendingPlan(result);
     } else {
       setQuip("Butter got distracted by a great recipe. Try again!");
     }
-  }, [meals, list, guests, grandmaMode, weekId, planFullWeek, upsertMealPlan, upsertShoppingList, setQuip]);
+  }, [meals, list, guests, preferences, planFullWeek, setQuip]);
 
   const handlePlanDinners = useCallback(async () => {
-    const result = await planDinners(meals, list, guests);
+    const result = await planDinners(meals, list, guests, preferences);
     if (result) {
-      await upsertMealPlan({
-        weekId,
-        meals: result.meals as typeof meals,
-        nutrition: result.nutrition,
-        guests,
-        grandmaMode,
-      });
-      if (result.shoppingList) {
-        const items = result.shoppingList.map((item, i) => ({
-          id: `i${Date.now()}${i}`,
-          ...item,
-          checked: false,
-        }));
-        const householdItems = list.filter((i) => i.category === "Household");
-        await upsertShoppingList({ weekId, items: [...items, ...householdItems] });
-      }
-      if (result.butterQuip) setQuip(result.butterQuip);
+      setPendingPlan(result);
     } else {
       setQuip("Butter got distracted. Try again!");
     }
-  }, [meals, list, guests, grandmaMode, weekId, planDinners, upsertMealPlan, upsertShoppingList, setQuip]);
+  }, [meals, list, guests, preferences, planDinners, setQuip]);
 
   const handlePlanLunches = useCallback(async () => {
-    const result = await planLunches(meals, list, guests);
+    const result = await planLunches(meals, list, guests, preferences);
     if (result) {
-      await upsertMealPlan({
-        weekId,
-        meals: result.meals as typeof meals,
-        nutrition: result.nutrition,
-        guests,
-        grandmaMode,
-      });
-      if (result.shoppingList) {
-        const items = result.shoppingList.map((item, i) => ({
-          id: `i${Date.now()}${i}`,
-          ...item,
-          checked: false,
-        }));
-        const householdItems = list.filter((i) => i.category === "Household");
-        await upsertShoppingList({ weekId, items: [...items, ...householdItems] });
-      }
-      if (result.butterQuip) setQuip(result.butterQuip);
+      setPendingPlan(result);
     } else {
       setQuip("Couldn't fill lunches right now. Give it another shot!");
     }
-  }, [meals, list, guests, grandmaMode, weekId, planLunches, upsertMealPlan, upsertShoppingList, setQuip]);
+  }, [meals, list, guests, preferences, planLunches, setQuip]);
 
   const handlePlanDay = useCallback(
     async (day: DayFull, customPrompt: string = "") => {
-      const result = await planDay(day, meals, list, guests, customPrompt);
+      const result = await planDay(day, meals, list, guests, customPrompt, preferences);
       if (result) {
         await upsertMealPlan({
           weekId,
@@ -235,12 +239,21 @@ export default function ButterBarnDeluxe() {
       }
       setDaySheet(null);
     },
-    [meals, list, guests, grandmaMode, weekId, planDay, upsertMealPlan, upsertShoppingList, setQuip]
+    [meals, list, guests, grandmaMode, weekId, preferences, planDay, upsertMealPlan, upsertShoppingList, setQuip]
   );
 
   const handleChatPrompt = useCallback(
     async (prompt: string) => {
-      const result = await handlePrompt(prompt, meals, list, guests);
+      // Check if user is expressing dislike for something
+      const dislikeMatch = prompt.toLowerCase().match(/(?:we |i )(?:don't|dont|do not) (?:like|want|eat) (.+)/);
+      if (dislikeMatch) {
+        const dislikedItem = dislikeMatch[1].trim().replace(/[.!?]$/, "");
+        await addDislike({ item: dislikedItem });
+        setQuip(`Got it, honey! I'll remember y'all don't like ${dislikedItem}.`);
+        return true;
+      }
+
+      const result = await handlePrompt(prompt, meals, list, guests, preferences);
       if (result) {
         await upsertMealPlan({
           weekId,
@@ -265,7 +278,7 @@ export default function ButterBarnDeluxe() {
         return false;
       }
     },
-    [meals, list, guests, grandmaMode, weekId, handlePrompt, upsertMealPlan, upsertShoppingList, setQuip]
+    [meals, list, guests, grandmaMode, weekId, preferences, handlePrompt, addDislike, upsertMealPlan, upsertShoppingList, setQuip]
   );
 
   const handleSaveMeal = useCallback(
@@ -287,8 +300,14 @@ export default function ButterBarnDeluxe() {
         prep: field === "prep" ? value : existing.prep,
         taste: field === "taste" ? value : existing.taste,
       });
+
+      // If taste rating is 2 or less, add to avoid meals
+      if (field === "taste" && value <= 2 && mealName) {
+        await addAvoidMeal({ mealName });
+        setQuip(`I'll remember not to suggest ${mealName} again, sugar.`);
+      }
     },
-    [weekId, meals, ratings, upsertRating]
+    [weekId, meals, ratings, upsertRating, addAvoidMeal, setQuip]
   );
 
   const handleToggleItem = useCallback(
@@ -351,7 +370,7 @@ export default function ButterBarnDeluxe() {
   );
 
   const remaining = list.filter((i) => !i.checked).length;
-  const anySheet = chatSheet || editSheet || mealDetail || addItemSheet || daySheet;
+  const anySheet = chatSheet || editSheet || mealDetail || addItemSheet || daySheet || pendingPlan;
 
   return (
     <div
@@ -394,6 +413,7 @@ export default function ButterBarnDeluxe() {
               }
             }}
             onDayClick={(day) => setDaySheet({ day })}
+            onWeekChange={handleWeekChange}
           />
         )}
 
@@ -449,6 +469,7 @@ export default function ButterBarnDeluxe() {
             setMealDetail(null);
             setAddItemSheet(false);
             setDaySheet(null);
+            setPendingPlan(null);
           }}
           className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
         />
@@ -519,6 +540,14 @@ export default function ButterBarnDeluxe() {
             });
           }}
           onClose={() => setDaySheet(null)}
+        />
+      )}
+
+      {pendingPlan && (
+        <PreviewSheet
+          plan={pendingPlan}
+          onAccept={handleAcceptPlan}
+          onReject={handleRejectPlan}
         />
       )}
 

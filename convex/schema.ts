@@ -186,6 +186,18 @@ export default defineSchema({
     .index("by_week", ["weekId"])
     .index("by_user_week", ["userId", "weekId"]),
 
+  // ============ PREFERENCES ============
+  // User food preferences, dislikes, allergies
+  preferences: defineTable({
+    userId: v.optional(v.id("users")),
+    dislikes: v.array(v.string()), // Foods/ingredients they don't like
+    allergies: v.array(v.string()), // Allergies to avoid
+    avoidMeals: v.array(v.string()), // Specific meals that got poor ratings
+    notes: v.optional(v.string()), // Other dietary notes
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   // ============ RECEIPTS ============
   // Store scanned receipt data
   receipts: defineTable({

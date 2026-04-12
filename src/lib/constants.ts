@@ -96,12 +96,55 @@ Every response MUST include a "butterQuip" (1–2 punchy sentences reacting in c
 // ============ HELPER: Get current week ID ============
 export function getCurrentWeekId(): string {
   const now = new Date();
-  const year = now.getFullYear();
-  // Get ISO week number
+  return getWeekIdForDate(now);
+}
+
+export function getWeekIdForDate(date: Date): string {
+  const year = date.getFullYear();
   const startOfYear = new Date(year, 0, 1);
-  const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+  const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
   const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
   return `${year}-W${String(weekNumber).padStart(2, "0")}`;
+}
+
+export function getWeekOffset(weekId: string, offset: number): string {
+  // Parse week ID like "2026-W15"
+  const match = weekId.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return weekId;
+  const year = parseInt(match[1], 10);
+  const week = parseInt(match[2], 10);
+
+  // Create date from ISO week
+  const jan4 = new Date(year, 0, 4);
+  const dayOfWeek = jan4.getDay() || 7;
+  const firstMonday = new Date(jan4);
+  firstMonday.setDate(jan4.getDate() - dayOfWeek + 1);
+
+  // Add weeks
+  const targetDate = new Date(firstMonday);
+  targetDate.setDate(firstMonday.getDate() + (week - 1 + offset) * 7);
+
+  return getWeekIdForDate(targetDate);
+}
+
+export function getWeekDateRange(weekId: string): { start: Date; end: Date } {
+  const match = weekId.match(/^(\d{4})-W(\d{2})$/);
+  if (!match) return { start: new Date(), end: new Date() };
+  const year = parseInt(match[1], 10);
+  const week = parseInt(match[2], 10);
+
+  const jan4 = new Date(year, 0, 4);
+  const dayOfWeek = jan4.getDay() || 7;
+  const firstMonday = new Date(jan4);
+  firstMonday.setDate(jan4.getDate() - dayOfWeek + 1);
+
+  const start = new Date(firstMonday);
+  start.setDate(firstMonday.getDate() + (week - 1) * 7);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  return { start, end };
 }
 
 // ============ HELPER: Initialize empty meals ============

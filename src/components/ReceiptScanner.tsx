@@ -78,26 +78,26 @@ export function ReceiptScanner({
   };
 
   return (
-    <div className="px-3.5 pb-28 pt-3.5">
-      <div className="mb-1 text-lg font-bold" style={{ fontFamily: "var(--font-lora), serif" }}>
+    <div className="flex h-full flex-col overflow-hidden px-3 pt-2">
+      <div className="mb-1 font-bold" style={{ fontFamily: "var(--font-lora), serif", fontSize: "clamp(14px, 4vw, 18px)" }}>
         Scan Receipt
       </div>
-      <div className="mb-3.5 text-[12.5px]" style={{ color: T.muted }}>
-        Butter reads receipts and tracks prices by store.
+      <div className="mb-2" style={{ color: T.muted, fontSize: "clamp(10px, 2.5vw, 13px)" }}>
+        Butter reads receipts and tracks prices.
       </div>
 
       <div
-        className="mb-3 flex items-center gap-2.5 rounded-[14px] border px-3.5 py-3"
-        style={{ background: T.card, borderColor: T.border, boxShadow: T.shadow }}
+        className="mb-2 flex shrink-0 items-center gap-2 rounded-xl border"
+        style={{ background: T.card, borderColor: T.border, padding: "clamp(8px, 2vh, 12px)" }}
       >
-        <span className="whitespace-nowrap text-[13px] font-semibold" style={{ color: T.brown }}>
-          🏪 Store
+        <span className="whitespace-nowrap font-semibold" style={{ color: T.brown, fontSize: "clamp(11px, 2.5vw, 14px)" }}>
+          🏪
         </span>
         <select
           value={store}
           onChange={(e) => setStore(e.target.value)}
-          className="flex-1 cursor-pointer border-none bg-transparent text-[13px] font-bold outline-none"
-          style={{ color: T.butterD }}
+          className="flex-1 cursor-pointer border-none bg-transparent font-bold outline-none"
+          style={{ color: T.butterD, fontSize: "clamp(11px, 2.5vw, 14px)" }}
         >
           {STORES.map((s) => (
             <option key={s}>{s}</option>
@@ -107,25 +107,32 @@ export function ReceiptScanner({
 
       <div
         onClick={() => fileRef.current?.click()}
-        className="mb-3 cursor-pointer rounded-[20px] border-2 border-dashed p-8 text-center transition-colors active:border-[#D4920A] active:bg-[#FEF6E0]"
-        style={{ borderColor: T.border, background: T.card, boxShadow: T.shadow }}
+        className="mb-2 shrink-0 cursor-pointer rounded-2xl border-2 border-dashed text-center transition-colors active:border-[#D4920A] active:bg-[#FEF6E0]"
+        style={{ borderColor: T.border, background: T.card, padding: "clamp(16px, 4vh, 32px)" }}
       >
         <div
-          className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl"
-          style={{ background: T.butterL, boxShadow: "0 3px 12px rgba(212,146,10,0.2)" }}
+          className="mx-auto mb-2 flex items-center justify-center rounded-xl"
+          style={{
+            background: T.butterL,
+            boxShadow: "0 3px 12px rgba(212,146,10,0.2)",
+            width: "clamp(40px, 10vw, 56px)",
+            height: "clamp(40px, 10vw, 56px)",
+            fontSize: "clamp(18px, 5vw, 28px)",
+          }}
         >
           📸
         </div>
-        <div className="mb-1 text-sm font-bold" style={{ color: T.brown }}>
-          Tap to upload receipt photo
+        <div className="mb-1 font-bold" style={{ color: T.brown, fontSize: "clamp(12px, 3vw, 15px)" }}>
+          Tap to capture receipt
         </div>
-        <div className="text-xs" style={{ color: T.muted }}>
-          JPG · PNG · HEIC · Multiple OK
+        <div style={{ color: T.muted, fontSize: "clamp(10px, 2.5vw, 13px)" }}>
+          Camera or gallery
         </div>
         <input
           ref={fileRef}
           type="file"
           accept="image/*"
+          capture="environment"
           multiple
           className="hidden"
           onChange={(e) => setFiles(Array.from(e.target.files || []))}
@@ -133,58 +140,68 @@ export function ReceiptScanner({
       </div>
 
       {files.length > 0 && (
-        <div className="mb-3.5">
-          <div className="mb-2 text-xs" style={{ color: T.muted }}>
-            📎 {files.length} photo{files.length > 1 ? "s" : ""} ready · Logging as <strong>{store}</strong>
+        <div className="mb-2 shrink-0">
+          <div className="mb-1" style={{ color: T.muted, fontSize: "clamp(10px, 2.5vw, 12px)" }}>
+            📎 {files.length} photo{files.length > 1 ? "s" : ""} ready
           </div>
           <button
             onClick={handleAnalyze}
             disabled={loading}
-            className="w-full cursor-pointer rounded-[14px] border-none px-4 py-3.5 text-sm font-extrabold"
+            className="w-full cursor-pointer rounded-xl border-none font-extrabold"
             style={{
               background: loading ? T.muted : T.butter,
               color: loading ? "#fff" : T.brown,
               boxShadow: loading ? "none" : "0 4px 16px rgba(212,146,10,0.4)",
+              padding: "clamp(10px, 2.5vh, 14px)",
+              fontSize: "clamp(12px, 3vw, 15px)",
             }}
           >
-            {loading ? `🧈 ${loadLabel}` : "✦ Analyze & Log Prices"}
+            {loading ? `🧈 ${loadLabel}` : "✦ Analyze Receipt"}
           </button>
         </div>
       )}
 
-      {receipts.map((r) => (
-        <div
-          key={r._id}
-          className="mb-3 rounded-[18px] border p-4 animate-in fade-in slide-in-from-bottom-2"
-          style={{ background: T.card, borderColor: T.border, boxShadow: T.shadow }}
-        >
-          <div className="mb-2.5 flex items-start justify-between">
-            <div>
-              <div className="text-sm font-bold">{r.store}</div>
-              <div className="mt-0.5 text-[11.5px]" style={{ color: T.muted }}>
-                {r.date || "Recent"}
+      {/* Scrollable receipts list */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {receipts.map((r) => (
+          <div
+            key={r._id}
+            className="mb-2 rounded-xl border p-3 animate-in fade-in slide-in-from-bottom-2"
+            style={{ background: T.card, borderColor: T.border, boxShadow: T.shadow }}
+          >
+            <div className="mb-2 flex items-start justify-between">
+              <div>
+                <div className="font-bold" style={{ fontSize: "clamp(12px, 3vw, 14px)" }}>{r.store}</div>
+                <div style={{ color: T.muted, fontSize: "clamp(10px, 2.5vw, 12px)" }}>
+                  {r.date || "Recent"}
+                </div>
               </div>
+              {r.total != null && (
+                <div className="font-bold" style={{ fontFamily: "var(--font-lora), serif", color: T.green, fontSize: "clamp(14px, 3.5vw, 17px)" }}>
+                  ${r.total.toFixed(2)}
+                </div>
+              )}
             </div>
-            {r.total != null && (
-              <div className="text-[17px] font-bold" style={{ fontFamily: "var(--font-lora), serif", color: T.green }}>
-                ${r.total.toFixed(2)}
+            {(r.items || []).slice(0, 3).map((item, i) => (
+              <div
+                key={i}
+                className="flex justify-between border-t py-1"
+                style={{ borderTopColor: T.border, fontSize: "clamp(10px, 2.5vw, 13px)" }}
+              >
+                <span>{item.name}</span>
+                <span className="font-bold" style={{ color: T.terra }}>
+                  ${item.price?.toFixed(2)}
+                </span>
+              </div>
+            ))}
+            {(r.items || []).length > 3 && (
+              <div className="pt-1 text-center" style={{ color: T.muted, fontSize: "clamp(9px, 2vw, 11px)" }}>
+                +{r.items.length - 3} more items
               </div>
             )}
           </div>
-          {(r.items || []).map((item, i) => (
-            <div
-              key={i}
-              className="flex justify-between border-t py-2"
-              style={{ borderTopColor: T.border }}
-            >
-              <span className="text-[13px]">{item.name}</span>
-              <span className="text-[13px] font-bold" style={{ color: T.terra }}>
-                ${item.price?.toFixed(2)}
-              </span>
-            </div>
-          ))}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
