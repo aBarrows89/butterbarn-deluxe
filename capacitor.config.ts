@@ -16,6 +16,7 @@ const config: CapacitorConfig = {
     },
     CapacitorUpdater: {
       autoUpdate: true,
+      appId: 'com.butterbarn.deluxe',
       defaultChannel: 'production',
     },
   },
