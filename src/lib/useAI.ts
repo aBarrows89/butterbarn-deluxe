@@ -31,6 +31,16 @@ interface ReceiptResponse {
   total: number;
 }
 
+interface RecipeResponse {
+  butterQuip: string;
+  prepTime: string;
+  cookTime: string;
+  servings: number;
+  ingredients: Array<{ item: string; amount: string }>;
+  steps: string[];
+  tips?: string;
+}
+
 // API key is bundled at build time for static export (fine for personal use)
 const ANTHROPIC_API_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "";
 
@@ -293,6 +303,39 @@ export function useAI() {
     []
   );
 
+  const getRecipe = useCallback(
+    async (mealName: string, servings: number): Promise<RecipeResponse | null> => {
+      setLoading(true);
+      setLoadLabel("Writing recipe...");
+      try {
+        const raw = await callClaude(
+          `Generate a detailed, practical recipe for: "${mealName}" for ${servings} people. Make it home-cook friendly with common ingredients.`,
+          `${BUTTER_PERSONA}
+Return ONLY valid JSON (no markdown):
+{
+  "butterQuip": "",
+  "prepTime": "15 mins",
+  "cookTime": "30 mins",
+  "servings": ${servings},
+  "ingredients": [{"item": "ingredient name", "amount": "1 cup"}],
+  "steps": ["Step 1 instruction", "Step 2 instruction"],
+  "tips": "Optional helpful tip"
+}
+Be specific with measurements and times. Steps should be clear and concise. Return ONLY the JSON.`
+        );
+        const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+        return parsed;
+      } catch (e) {
+        console.error("Recipe error:", e);
+        return null;
+      } finally {
+        setLoading(false);
+        setLoadLabel("");
+      }
+    },
+    []
+  );
+
   return {
     loading,
     loadLabel,
@@ -302,5 +345,6 @@ export function useAI() {
     planDay,
     handlePrompt,
     analyzeReceipt,
+    getRecipe,
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { T, MEAL_ICONS, type DayFull, type MealType } from "@/lib/constants";
 
 interface Nutrition {
@@ -9,13 +10,27 @@ interface Nutrition {
   fat: number;
 }
 
+interface Recipe {
+  butterQuip: string;
+  prepTime: string;
+  cookTime: string;
+  servings: number;
+  ingredients: Array<{ item: string; amount: string }>;
+  steps: string[];
+  tips?: string;
+}
+
 interface MealDetailSheetProps {
   day: DayFull;
   meal: MealType;
   mealName: string;
   nutrition?: Nutrition;
   rating: { prep: number; taste: number };
+  guests: number;
+  loading: boolean;
+  loadLabel: string;
   onRatingChange: (field: "prep" | "taste", value: number) => void;
+  onGetRecipe: (mealName: string, servings: number) => Promise<Recipe | null>;
   onEdit: () => void;
   onClose: () => void;
 }
@@ -68,10 +83,25 @@ export function MealDetailSheet({
   mealName,
   nutrition,
   rating,
+  guests,
+  loading,
+  loadLabel,
   onRatingChange,
+  onGetRecipe,
   onEdit,
   onClose,
 }: MealDetailSheetProps) {
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [showRecipe, setShowRecipe] = useState(false);
+
+  const handleGetRecipe = async () => {
+    const result = await onGetRecipe(mealName, guests);
+    if (result) {
+      setRecipe(result);
+      setShowRecipe(true);
+    }
+  };
+
   return (
     <div
       className="fixed z-[201] max-h-[70vh] overflow-y-auto border animate-in slide-in-from-bottom-4"
@@ -140,6 +170,104 @@ export function MealDetailSheet({
           No nutrition data yet · Use AI to plan for auto-populated macros
         </div>
       )}
+
+      {/* Recipe Section */}
+      {!showRecipe ? (
+        <button
+          onClick={handleGetRecipe}
+          disabled={loading}
+          className="mb-4 w-full cursor-pointer rounded-[14px] border py-3 text-sm font-bold transition-all disabled:cursor-default disabled:opacity-50"
+          style={{
+            background: loading ? T.muted : T.terraL,
+            color: loading ? "#fff" : T.terra,
+            borderColor: loading ? T.muted : T.terra,
+          }}
+        >
+          {loading ? `🧈 ${loadLabel}` : "📖 Get Recipe"}
+        </button>
+      ) : recipe ? (
+        <div
+          className="mb-4 rounded-[14px] border p-3"
+          style={{ background: T.terraL, borderColor: `${T.terra}40` }}
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <div
+              className="text-[11px] font-extrabold uppercase tracking-wide"
+              style={{ color: T.terra, letterSpacing: 0.8 }}
+            >
+              Recipe
+            </div>
+            <button
+              onClick={() => setShowRecipe(false)}
+              className="cursor-pointer border-none bg-transparent text-xs font-bold"
+              style={{ color: T.muted }}
+            >
+              Hide
+            </button>
+          </div>
+
+          {/* Time & Servings */}
+          <div className="mb-3 flex gap-3">
+            <div className="rounded-lg px-2 py-1 text-center" style={{ background: T.card }}>
+              <div className="text-[9px] font-bold uppercase" style={{ color: T.muted }}>Prep</div>
+              <div className="text-xs font-bold" style={{ color: T.brown }}>{recipe.prepTime}</div>
+            </div>
+            <div className="rounded-lg px-2 py-1 text-center" style={{ background: T.card }}>
+              <div className="text-[9px] font-bold uppercase" style={{ color: T.muted }}>Cook</div>
+              <div className="text-xs font-bold" style={{ color: T.brown }}>{recipe.cookTime}</div>
+            </div>
+            <div className="rounded-lg px-2 py-1 text-center" style={{ background: T.card }}>
+              <div className="text-[9px] font-bold uppercase" style={{ color: T.muted }}>Serves</div>
+              <div className="text-xs font-bold" style={{ color: T.brown }}>{recipe.servings}</div>
+            </div>
+          </div>
+
+          {/* Ingredients */}
+          <div className="mb-3">
+            <div className="mb-1.5 text-[10px] font-bold uppercase" style={{ color: T.terra }}>
+              Ingredients
+            </div>
+            <div className="rounded-lg p-2" style={{ background: T.card }}>
+              {recipe.ingredients.map((ing, i) => (
+                <div key={i} className="flex justify-between py-0.5 text-xs" style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+                  <span style={{ color: T.brown }}>{ing.item}</span>
+                  <span className="font-bold" style={{ color: T.muted }}>{ing.amount}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="mb-2">
+            <div className="mb-1.5 text-[10px] font-bold uppercase" style={{ color: T.terra }}>
+              Instructions
+            </div>
+            <ol className="m-0 list-none p-0">
+              {recipe.steps.map((step, i) => (
+                <li key={i} className="mb-2 flex gap-2 text-xs leading-relaxed" style={{ color: T.brown }}>
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                    style={{ background: T.terra, color: "#fff" }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Tips */}
+          {recipe.tips && (
+            <div
+              className="rounded-lg px-2.5 py-2 text-xs italic"
+              style={{ background: T.butterL, color: T.butterD }}
+            >
+              💡 {recipe.tips}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* Ratings */}
       <div className="mb-4">

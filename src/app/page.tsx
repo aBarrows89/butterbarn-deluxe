@@ -102,7 +102,7 @@ export default function ButterBarnDeluxe() {
   const [pendingPlan, setPendingPlan] = useState<PlanResponse | null>(null);
 
   // AI hook
-  const { loading, loadLabel, planFullWeek, planDinners, planLunches, planDay, handlePrompt, analyzeReceipt } =
+  const { loading, loadLabel, planFullWeek, planDinners, planLunches, planDay, handlePrompt, analyzeReceipt, getRecipe } =
     useAI();
 
   // Derived state
@@ -504,7 +504,11 @@ export default function ButterBarnDeluxe() {
           mealName={meals[mealDetail.day]?.[mealDetail.meal] ?? ""}
           nutrition={nutrition[`${mealDetail.day}-${mealDetail.meal}`]}
           rating={ratings[`${weekId}-${mealDetail.day}-${mealDetail.meal}`] ?? { prep: 0, taste: 0 }}
+          guests={guests}
+          loading={loading}
+          loadLabel={loadLabel}
           onRatingChange={(field, value) => handleRating(mealDetail.day, mealDetail.meal, field, value)}
+          onGetRecipe={getRecipe}
           onEdit={() => {
             setMealDetail(null);
             setEditSheet({
