@@ -355,8 +355,14 @@ export default function ButterBarnDeluxe() {
 
   return (
     <div
-      className="flex h-screen flex-col overflow-hidden"
-      style={{ fontFamily: "var(--font-nunito), sans-serif", background: T.bg, color: T.brown }}
+      className="flex flex-col overflow-hidden"
+      style={{
+        fontFamily: "var(--font-nunito), sans-serif",
+        background: T.bg,
+        color: T.brown,
+        height: "100%",
+        maxHeight: "100vh",
+      }}
     >
       <Header
         guests={guests}
@@ -367,7 +373,7 @@ export default function ButterBarnDeluxe() {
 
       <ButterQuip quip={butterQuip} quipKey={quipKey} />
 
-      <div className="flex-1 overflow-y-auto" key={tab}>
+      <div className="flex-1 overflow-hidden" key={tab}>
         {tab === "plan" && (
           <MealGrid
             meals={meals}
@@ -420,16 +426,18 @@ export default function ButterBarnDeluxe() {
       {!anySheet && (
         <button
           onClick={() => setChatSheet(true)}
-          className="fixed z-50 flex items-center gap-2 rounded-full px-5 py-3 font-extrabold shadow-lg transition-transform active:scale-95"
+          className="fixed z-50 flex items-center gap-2 rounded-full font-extrabold shadow-lg transition-transform active:scale-95"
           style={{
-            bottom: 78,
-            right: 18,
+            bottom: "calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 12px)",
+            right: "var(--sheet-margin)",
+            padding: "var(--spacing-sm) var(--spacing-md)",
+            fontSize: "var(--font-sm)",
             background: `linear-gradient(135deg, ${T.butter}, #F0A820)`,
             color: T.brown,
             boxShadow: `0 6px 24px rgba(212,146,10,0.5)`,
           }}
         >
-          <span className="text-lg">🧈</span> Ask Butter
+          <span>🧈</span> Ask Butter
         </button>
       )}
 

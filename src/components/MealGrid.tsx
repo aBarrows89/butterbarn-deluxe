@@ -88,9 +88,9 @@ export function MealGrid({
   };
 
   return (
-    <div className="px-2.5 pb-28 pt-3">
+    <div className="flex h-full flex-col overflow-hidden px-2.5 pt-2">
       {/* Quick chips */}
-      <div className="mb-2.5 flex gap-2 overflow-x-auto pb-0.5">
+      <div className="mb-2 flex shrink-0 gap-2 overflow-x-auto pb-0.5">
         <button
           onClick={onPlanFullWeek}
           disabled={loading}
@@ -132,7 +132,7 @@ export function MealGrid({
       {/* Weekly nutrition summary */}
       {weeklyNutrition.calories > 0 && (
         <div
-          className="mb-2.5 rounded-[14px] border p-3"
+          className="mb-2 shrink-0 rounded-xl border p-2"
           style={{ background: T.card, borderColor: T.border, boxShadow: T.shadow }}
         >
           <div
@@ -162,66 +162,76 @@ export function MealGrid({
         </div>
       )}
 
-      {/* Grid header */}
-      <div className="mb-0.5 grid grid-cols-[42px_repeat(7,1fr)] gap-0.5">
-        <div />
-        {DAYS_FULL.map((d, i) => (
-          <button
-            key={d}
-            onClick={() => onDayClick(d)}
-            className="cursor-pointer rounded-lg border border-transparent bg-transparent p-1 text-center text-[9px] font-extrabold uppercase tracking-wide transition-colors hover:border-[#EDE3D8]"
-            style={{ color: T.butter }}
-          >
-            {DAYS_SHORT[i]}
-          </button>
+      {/* Grid container */}
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5">
+        {/* Grid header */}
+        <div className="grid shrink-0 grid-cols-[36px_repeat(7,1fr)] gap-0.5">
+          <div />
+          {DAYS_FULL.map((d, i) => (
+            <button
+              key={d}
+              onClick={() => onDayClick(d)}
+              className="cursor-pointer rounded-lg border border-transparent bg-transparent p-0.5 text-center font-extrabold uppercase tracking-wide transition-colors hover:border-[#EDE3D8]"
+              style={{ color: T.butter, fontSize: "clamp(7px, 2vw, 9px)" }}
+            >
+              {DAYS_SHORT[i]}
+            </button>
+          ))}
+        </div>
+
+        {/* Meal rows */}
+        {MEAL_TYPES.map((meal) => (
+          <div key={meal} className="grid min-h-0 flex-1 grid-cols-[36px_repeat(7,1fr)] gap-0.5">
+            <div className="flex flex-col items-center justify-center gap-0.5">
+              <span style={{ fontSize: "clamp(10px, 2.5vw, 14px)" }}>{MEAL_ICONS[meal]}</span>
+              <span
+                className="font-extrabold uppercase tracking-tight"
+                style={{ color: T.muted, fontSize: "clamp(6px, 1.5vw, 8px)" }}
+              >
+                {meal.slice(0, 3)}
+              </span>
+            </div>
+            {DAYS_FULL.map((day) => {
+              const val = meals[day]?.[meal] || "";
+              const nk = `${day}-${meal}`;
+              const n = nutrition[nk];
+              const rating = getRating(day, meal);
+              return (
+                <div
+                  key={day}
+                  onClick={() => onCellClick(day, meal)}
+                  className="relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border p-0.5 transition-all active:scale-95"
+                  style={{
+                    background: val ? T.greenL : T.card,
+                    borderColor: val ? T.checked : T.border,
+                    boxShadow: val ? "none" : T.shadow,
+                  }}
+                >
+                  <span
+                    className="line-clamp-2 text-center leading-tight"
+                    style={{ color: val ? T.brown : "#D0C4BB", fontSize: "clamp(7px, 1.8vw, 10px)" }}
+                  >
+                    {val || "+"}
+                  </span>
+                  {n?.calories && (
+                    <div className="font-bold tracking-wide" style={{ color: T.calories, fontSize: "clamp(6px, 1.5vw, 9px)" }}>
+                      {n.calories}
+                    </div>
+                  )}
+                  {rating.taste > 0 && (
+                    <div style={{ color: T.butter, fontSize: "clamp(5px, 1.2vw, 7px)" }}>
+                      {"★".repeat(rating.taste)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ))}
       </div>
 
-      {/* Meal rows */}
-      {MEAL_TYPES.map((meal) => (
-        <div key={meal} className="mb-0.5 grid grid-cols-[42px_repeat(7,1fr)] gap-0.5">
-          <div className="flex flex-col items-center justify-center gap-0.5">
-            <span className="text-xs">{MEAL_ICONS[meal]}</span>
-            <span className="text-[7px] font-extrabold uppercase tracking-tight" style={{ color: T.muted }}>
-              {meal.slice(0, 3)}
-            </span>
-          </div>
-          {DAYS_FULL.map((day) => {
-            const val = meals[day]?.[meal] || "";
-            const nk = `${day}-${meal}`;
-            const n = nutrition[nk];
-            const rating = getRating(day, meal);
-            return (
-              <div
-                key={day}
-                onClick={() => onCellClick(day, meal)}
-                className="relative flex min-h-[60px] cursor-pointer flex-col items-center justify-center rounded-[10px] border p-1 transition-all active:scale-95"
-                style={{
-                  background: val ? T.greenL : T.card,
-                  borderColor: val ? T.checked : T.border,
-                  boxShadow: val ? "none" : T.shadow,
-                }}
-              >
-                <span
-                  className="text-center text-[9px] leading-tight"
-                  style={{ color: val ? T.brown : "#D0C4BB" }}
-                >
-                  {val || "+"}
-                </span>
-                <NutritionBadge n={n} />
-                {rating.taste > 0 && (
-                  <div className="mt-0.5 text-[7px]" style={{ color: T.butter }}>
-                    {"★".repeat(rating.taste)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
-
-      <div className="mt-3.5 text-center text-[11px]" style={{ color: T.muted }}>
-        Tap empty cell to edit · Tap meal for details & ratings · 🧈 to ask Butter
+      <div className="shrink-0 py-1 text-center" style={{ color: T.muted, fontSize: "clamp(9px, 2.5vw, 11px)" }}>
+        Tap cell to edit · 🧈 Ask Butter
       </div>
     </div>
   );

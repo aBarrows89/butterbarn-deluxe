@@ -42,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${nunito.variable} ${lora.variable}`}>
-      <body className="min-h-screen bg-[#F7F2EA] font-sans antialiased">
+      <body className="h-full overflow-hidden bg-[#F7F2EA] font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>
