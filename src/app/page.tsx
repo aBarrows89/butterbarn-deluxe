@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { App } from "@capacitor/app";
+import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { api } from "../../convex/_generated/api";
 import { getDailyGreeting } from "@/lib/butterGreetings";
 import {
@@ -153,6 +154,11 @@ export default function ButterBarnDeluxe() {
   const setQuip = useCallback((q: string) => {
     setButterQuip(q);
     setQuipKey((k) => k + 1);
+  }, []);
+
+  // Notify Capgo that app loaded successfully (for OTA updates)
+  useEffect(() => {
+    CapacitorUpdater.notifyAppReady();
   }, []);
 
   // Android back button handler
