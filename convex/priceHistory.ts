@@ -106,3 +106,40 @@ export const addMultipleEntries = mutation({
     }
   },
 });
+
+// Remove all entries from a specific store
+export const removeEntriesByStore = mutation({
+  args: { store: v.string() },
+  handler: async (ctx, args) => {
+    const all = await ctx.db.query("priceHistory").collect();
+    const now = Date.now();
+    let deleted = 0;
+    let updated = 0;
+
+    for (const record of all) {
+      const filtered = record.entries.filter((e) => e.store !== args.store);
+      if (filtered.length === 0) {
+        // No entries left, delete the record
+        await ctx.db.delete(record._id);
+        deleted++;
+      } else if (filtered.length < record.entries.length) {
+        // Some entries removed, update the record
+        await ctx.db.patch(record._id, { entries: filtered, updatedAt: now });
+        updated++;
+      }
+    }
+    return { deleted, updated };
+  },
+});
+
+// Clear all price history
+export const clearAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("priceHistory").collect();
+    for (const record of all) {
+      await ctx.db.delete(record._id);
+    }
+    return { deleted: all.length };
+  },
+});
