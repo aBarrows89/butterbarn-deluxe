@@ -31,6 +31,9 @@ interface ReceiptResponse {
   total: number;
 }
 
+// API key is bundled at build time for static export (fine for personal use)
+const ANTHROPIC_API_KEY = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "";
+
 async function callClaude(
   userContent: string | Array<{ type: string; source?: unknown; text?: string }>,
   system: string
@@ -42,13 +45,25 @@ async function callClaude(
     },
   ];
 
-  const response = await fetch("/api/claude", {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, system }),
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      system,
+      messages,
+    }),
   });
 
   if (!response.ok) {
+    const err = await response.text();
+    console.error("Claude API error:", err);
     throw new Error("Failed to call Claude API");
   }
 
