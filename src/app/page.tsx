@@ -74,6 +74,7 @@ export default function ButterBarnDeluxe() {
   const upsertMealPlan = useMutation(api.mealPlans.upsert);
   const updateMeal = useMutation(api.mealPlans.updateMeal);
   const updateSettings = useMutation(api.mealPlans.updateSettings);
+  const updateNutrition = useMutation(api.mealPlans.updateNutrition);
   const upsertShoppingList = useMutation(api.shoppingList.upsert);
   const toggleShoppingItem = useMutation(api.shoppingList.toggleItem);
   const addShoppingItem = useMutation(api.shoppingList.addItem);
@@ -442,18 +443,12 @@ export default function ButterBarnDeluxe() {
       const currentMeal = meals[day]?.[mealType] ?? "";
       const result = await swapMeal(day, mealType, currentMeal, meals, guests, preferences);
       if (result) {
+        // Update the meal name
         await updateMeal({ weekId, day, mealType, mealName: result.newMeal });
+        // Update nutrition separately if provided (don't use upsertMealPlan which would overwrite meals)
         if (result.nutrition) {
-          // Update nutrition for this meal
           const nutritionKey = `${day}-${mealType}`;
-          const newNutrition = { ...nutrition, [nutritionKey]: result.nutrition };
-          await upsertMealPlan({
-            weekId,
-            meals,
-            nutrition: newNutrition,
-            guests,
-            grandmaMode,
-          });
+          await updateNutrition({ weekId, nutritionKey, nutrition: result.nutrition });
         }
         if (result.butterQuip) setQuip(result.butterQuip);
         setMealDetail(null);
@@ -461,7 +456,7 @@ export default function ButterBarnDeluxe() {
         setQuip("Butter got stuck. Try again, sugar!");
       }
     },
-    [meals, guests, preferences, weekId, nutrition, grandmaMode, swapMeal, updateMeal, upsertMealPlan, setQuip]
+    [meals, guests, preferences, weekId, swapMeal, updateMeal, updateNutrition, setQuip]
   );
 
   // Find saved recipe for current meal detail
