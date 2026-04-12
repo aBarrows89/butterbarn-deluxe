@@ -1,0 +1,201 @@
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+
+const itemValidator = v.object({
+  id: v.string(),
+  ingredient: v.string(),
+  quantity: v.string(),
+  unit: v.string(),
+  meal: v.string(),
+  category: v.string(),
+  checked: v.boolean(),
+  estimatedCost: v.optional(v.number()),
+  haveIt: v.optional(v.boolean()),
+});
+
+// ============ QUERIES ============
+
+export const getByWeek = query({
+  args: { weekId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+  },
+});
+
+// ============ MUTATIONS ============
+
+export const upsert = mutation({
+  args: {
+    weekId: v.string(),
+    items: v.array(itemValidator),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    const now = Date.now();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        items: args.items,
+        updatedAt: now,
+      });
+      return existing._id;
+    } else {
+      return await ctx.db.insert("shoppingList", {
+        weekId: args.weekId,
+        items: args.items,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  },
+});
+
+export const toggleItem = mutation({
+  args: {
+    weekId: v.string(),
+    itemId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    if (!list) {
+      throw new Error("Shopping list not found");
+    }
+
+    const updatedItems = list.items.map((item) =>
+      item.id === args.itemId ? { ...item, checked: !item.checked } : item
+    );
+
+    await ctx.db.patch(list._id, {
+      items: updatedItems,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const markHaveIt = mutation({
+  args: {
+    weekId: v.string(),
+    itemId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    if (!list) {
+      throw new Error("Shopping list not found");
+    }
+
+    const updatedItems = list.items.map((item) =>
+      item.id === args.itemId ? { ...item, haveIt: true, checked: true } : item
+    );
+
+    await ctx.db.patch(list._id, {
+      items: updatedItems,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const addItem = mutation({
+  args: {
+    weekId: v.string(),
+    item: itemValidator,
+  },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    const now = Date.now();
+
+    if (list) {
+      await ctx.db.patch(list._id, {
+        items: [...list.items, args.item],
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("shoppingList", {
+        weekId: args.weekId,
+        items: [args.item],
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  },
+});
+
+export const removeItem = mutation({
+  args: {
+    weekId: v.string(),
+    itemId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    if (!list) {
+      throw new Error("Shopping list not found");
+    }
+
+    const updatedItems = list.items.filter((item) => item.id !== args.itemId);
+
+    await ctx.db.patch(list._id, {
+      items: updatedItems,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const clearChecked = mutation({
+  args: { weekId: v.string() },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    if (!list) return;
+
+    const updatedItems = list.items.filter((item) => !item.checked);
+
+    await ctx.db.patch(list._id, {
+      items: updatedItems,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const uncheckAll = mutation({
+  args: { weekId: v.string() },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    if (!list) return;
+
+    const updatedItems = list.items.map((item) => ({ ...item, checked: false }));
+
+    await ctx.db.patch(list._id, {
+      items: updatedItems,
+      updatedAt: Date.now(),
+    });
+  },
+});
