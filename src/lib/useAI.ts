@@ -21,6 +21,7 @@ interface ReceiptItem {
   price: number;
   quantity?: string;
   unit?: string;
+  category?: string;
 }
 
 interface ReceiptResponse {
@@ -351,6 +352,16 @@ STEP 2 - Extract items:
   * Use consistent naming: "GLDN DLCS BNLS SKNLS CHKN BRST" → "Boneless Skinless Chicken Breast"
   * Keep organic/specialty markers only if relevant: "ORG MILK" → "Organic Milk"
   * Examples: "GV 2% MILK GAL" → "2% Milk", "FRSH GRND BEEF 80/20" → "Ground Beef 80/20"
+- Category: Assign each item to one of these categories:
+  * Produce (fruits, vegetables)
+  * Meat & Seafood (chicken, beef, pork, fish, etc.)
+  * Dairy & Eggs (milk, cheese, yogurt, eggs)
+  * Pantry (canned goods, pasta, rice, spices, condiments)
+  * Frozen (frozen foods)
+  * Bakery (bread, rolls, pastries)
+  * Beverages (drinks, juice, soda)
+  * Household (cleaning supplies, paper towels, trash bags, toiletries, pet supplies, non-food items)
+  * Other (anything else)
 - Price (dollar amount on the right)
 - Skip subtotals, tax, payment info
 
@@ -363,10 +374,10 @@ Return ONLY valid JSON:
   "butterQuip": "short friendly comment",
   "store": "${store}",
   "date": "YYYY-MM-DD",
-  "items": [{"name": "Item", "price": 0.00, "quantity": "1", "unit": "ea"}],
+  "items": [{"name": "Item", "price": 0.00, "quantity": "1", "unit": "ea", "category": "Produce|Meat & Seafood|Dairy & Eggs|Pantry|Frozen|Bakery|Beverages|Household|Other"}],
   "total": 0.00
 }
-IMPORTANT: The date field must be the date PRINTED ON THE RECEIPT, not today's date.`
+IMPORTANT: The date field must be the date PRINTED ON THE RECEIPT, not today's date. Each item MUST have a category.`
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;

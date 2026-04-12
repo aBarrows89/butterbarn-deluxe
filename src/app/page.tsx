@@ -487,7 +487,7 @@ export default function ButterBarnDeluxe() {
         store: string;
         date: string;
         total: number;
-        items: Array<{ name: string; price: number; quantity?: string; unit?: string }>;
+        items: Array<{ name: string; price: number; quantity?: string; unit?: string; category?: string }>;
         butterQuip: string;
       }
     ) => {
