@@ -65,9 +65,20 @@ export function RecipeBook({ recipes, onDelete }: RecipeBookProps) {
   const [filter, setFilter] = useState<"all" | "favorites" | "recent">("all");
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   // Filter and sort recipes
   let displayRecipes = [...recipes];
+
+  // Apply search filter
+  if (search.trim()) {
+    const searchLower = search.toLowerCase();
+    displayRecipes = displayRecipes.filter((r) =>
+      r.displayName.toLowerCase().includes(searchLower) ||
+      r.ingredients.some((ing) => ing.item.toLowerCase().includes(searchLower))
+    );
+  }
+
   if (filter === "favorites") {
     displayRecipes = displayRecipes.filter((r) => (r.tasteRating ?? 0) >= 4);
   } else if (filter === "recent") {
@@ -75,7 +86,7 @@ export function RecipeBook({ recipes, onDelete }: RecipeBookProps) {
   }
 
   // Default sort by times used (most popular first)
-  if (filter === "all") {
+  if (filter === "all" && !search.trim()) {
     displayRecipes.sort((a, b) => b.timesUsed - a.timesUsed);
   }
 
@@ -123,6 +134,18 @@ export function RecipeBook({ recipes, onDelete }: RecipeBookProps) {
       </div>
       <div className="mb-2 shrink-0" style={{ color: T.muted, fontSize: "clamp(10px, 2.5vw, 13px)" }}>
         {recipes.length} recipes saved
+      </div>
+
+      {/* Search input */}
+      <div className="mb-2 shrink-0">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search recipes or ingredients..."
+          className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
+          style={{ background: T.card, borderColor: T.border, color: T.brown }}
+        />
       </div>
 
       {/* Filter tabs */}
