@@ -49,6 +49,7 @@ export const add = mutation({
         price: v.number(),
         quantity: v.optional(v.string()),
         unit: v.optional(v.string()),
+        category: v.optional(v.string()),
       })
     ),
     imageStorageId: v.optional(v.id("_storage")),
