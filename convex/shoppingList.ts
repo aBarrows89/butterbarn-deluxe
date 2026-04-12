@@ -199,3 +199,57 @@ export const uncheckAll = mutation({
     });
   },
 });
+
+export const removeItemsByMeal = mutation({
+  args: {
+    weekId: v.string(),
+    mealPattern: v.string(), // e.g., "Monday Dinner"
+  },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    if (!list) return;
+
+    // Remove items that match the meal pattern (e.g., "Monday Dinner — Chicken Tacos")
+    const updatedItems = list.items.filter(
+      (item) => !item.meal.startsWith(args.mealPattern)
+    );
+
+    await ctx.db.patch(list._id, {
+      items: updatedItems,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const addItems = mutation({
+  args: {
+    weekId: v.string(),
+    items: v.array(itemValidator),
+  },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    const now = Date.now();
+
+    if (list) {
+      await ctx.db.patch(list._id, {
+        items: [...list.items, ...args.items],
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("shoppingList", {
+        weekId: args.weekId,
+        items: args.items,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  },
+});

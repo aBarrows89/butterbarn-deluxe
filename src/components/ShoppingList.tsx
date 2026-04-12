@@ -14,6 +14,64 @@ interface ShoppingItem {
   haveIt?: boolean;
 }
 
+interface ConsolidatedItem extends ShoppingItem {
+  originalIds: string[];
+  meals: string[];
+  totalQuantity: string;
+}
+
+// Try to parse quantity as a number
+function parseQuantity(qty: string): number | null {
+  const cleaned = qty.replace(/[^\d.\/]/g, "").trim();
+  if (!cleaned) return null;
+  // Handle fractions like "1/2"
+  if (cleaned.includes("/")) {
+    const [num, denom] = cleaned.split("/");
+    return parseFloat(num) / parseFloat(denom);
+  }
+  return parseFloat(cleaned);
+}
+
+// Consolidate duplicate ingredients
+function consolidateIngredients(items: ShoppingItem[]): ConsolidatedItem[] {
+  const map = new Map<string, ConsolidatedItem>();
+
+  for (const item of items) {
+    // Normalize ingredient name for grouping
+    const key = `${item.ingredient.toLowerCase().trim()}|${item.unit.toLowerCase().trim()}|${item.category}`;
+
+    if (map.has(key)) {
+      const existing = map.get(key)!;
+      existing.originalIds.push(item.id);
+      if (!existing.meals.includes(item.meal)) {
+        existing.meals.push(item.meal);
+      }
+      // Try to add quantities
+      const existingQty = parseQuantity(existing.totalQuantity);
+      const newQty = parseQuantity(item.quantity);
+      if (existingQty !== null && newQty !== null) {
+        const total = existingQty + newQty;
+        // Format nicely (avoid 1.9999999)
+        existing.totalQuantity = total % 1 === 0 ? String(total) : total.toFixed(1).replace(/\.0$/, "");
+      } else {
+        // Can't add, just append
+        existing.totalQuantity = `${existing.totalQuantity} + ${item.quantity}`;
+      }
+      // Item is checked only if ALL originals are checked
+      existing.checked = existing.checked && item.checked;
+    } else {
+      map.set(key, {
+        ...item,
+        originalIds: [item.id],
+        meals: [item.meal],
+        totalQuantity: item.quantity,
+      });
+    }
+  }
+
+  return Array.from(map.values());
+}
+
 interface PriceEntry {
   ingredientKey: string;
   displayName: string;
@@ -83,13 +141,16 @@ export function ShoppingList({
       ? items
       : items.filter((i) => (listFilter === "Household" ? i.category === "Household" : i.category !== "Household"));
 
-  const grouped = visibleList.reduce(
+  // Consolidate duplicate ingredients
+  const consolidatedItems = consolidateIngredients(visibleList);
+
+  const grouped = consolidatedItems.reduce(
     (acc, item) => {
       const c = item.category || "Other";
       (acc[c] = acc[c] || []).push(item);
       return acc;
     },
-    {} as Record<string, ShoppingItem[]>
+    {} as Record<string, ConsolidatedItem[]>
   );
 
   const remaining = items.filter((i) => !i.checked).length;
@@ -182,10 +243,14 @@ export function ShoppingList({
               </div>
               {categoryItems.map((item) => {
                 const best = getBestStore(item.ingredient, priceHistory);
+                // For consolidated items, toggle all originals
+                const handleToggle = () => {
+                  item.originalIds.forEach((id) => onToggleItem(id));
+                };
                 return (
                   <div
                     key={item.id}
-                    onClick={() => onToggleItem(item.id)}
+                    onClick={handleToggle}
                     className="mb-2 flex cursor-pointer items-start gap-3 rounded-2xl transition-colors"
                     style={{
                       background: item.checked ? "#F5F0E8" : T.card,
@@ -229,16 +294,24 @@ export function ShoppingList({
                           {item.ingredient}
                         </span>
                         <span style={{ color: T.muted, fontSize: "clamp(9px, 2.2vw, 11px)" }}>
-                          {item.quantity}
+                          {item.totalQuantity}
                           {item.unit ? ` ${item.unit}` : ""}
                         </span>
+                        {item.meals.length > 1 && (
+                          <span
+                            className="rounded-full px-1.5 py-0.5 font-bold"
+                            style={{ background: T.butterL, color: T.butterD, fontSize: "clamp(7px, 1.8vw, 9px)" }}
+                          >
+                            {item.meals.length} meals
+                          </span>
+                        )}
                       </div>
-                      {item.category !== "Household" && item.meal && (
+                      {item.category !== "Household" && item.meals.length === 1 && item.meals[0] && (
                         <div
                           className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold"
                           style={{ color: T.terra, fontSize: "clamp(8px, 2vw, 10px)" }}
                         >
-                          🍽 {item.meal}
+                          🍽 {item.meals[0]}
                         </div>
                       )}
                       {best && best !== "no_data" && (

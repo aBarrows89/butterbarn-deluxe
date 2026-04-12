@@ -389,7 +389,12 @@ IMPORTANT: The date field must be the date PRINTED ON THE RECEIPT, not today's d
       currentMeals: Record<string, Record<string, string>>,
       guests: number,
       prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
-    ): Promise<{ newMeal: string; butterQuip: string; nutrition?: { calories: number; protein: number; carbs: number; fat: number } } | null> => {
+    ): Promise<{
+      newMeal: string;
+      butterQuip: string;
+      nutrition?: { calories: number; protein: number; carbs: number; fat: number };
+      ingredients: Array<{ ingredient: string; quantity: string; unit: string; category: string }>;
+    } | null> => {
       setLoading(true);
       setLoadLabel("Finding something else...");
       try {
@@ -411,7 +416,8 @@ Return ONLY valid JSON (no markdown):
 {
   "newMeal": "Name of the new meal",
   "butterQuip": "A short quip about the swap",
-  "nutrition": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}
+  "nutrition": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0},
+  "ingredients": [{"ingredient": "chicken breast", "quantity": "2", "unit": "lbs", "category": "Meat & Seafood"}]
 }
 Return ONLY the JSON. Nutrition values are per person.`
         );

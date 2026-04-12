@@ -78,6 +78,8 @@ export default function ButterBarnDeluxe() {
   const upsertShoppingList = useMutation(api.shoppingList.upsert);
   const toggleShoppingItem = useMutation(api.shoppingList.toggleItem);
   const addShoppingItem = useMutation(api.shoppingList.addItem);
+  const addShoppingItems = useMutation(api.shoppingList.addItems);
+  const removeItemsByMeal = useMutation(api.shoppingList.removeItemsByMeal);
   const clearCheckedItems = useMutation(api.shoppingList.clearChecked);
   const uncheckAllItems = useMutation(api.shoppingList.uncheckAll);
   const upsertRating = useMutation(api.ratings.upsert);
@@ -445,10 +447,25 @@ export default function ButterBarnDeluxe() {
       if (result) {
         // Update the meal name
         await updateMeal({ weekId, day, mealType, mealName: result.newMeal });
-        // Update nutrition separately if provided (don't use upsertMealPlan which would overwrite meals)
+        // Update nutrition separately if provided
         if (result.nutrition) {
           const nutritionKey = `${day}-${mealType}`;
           await updateNutrition({ weekId, nutritionKey, nutrition: result.nutrition });
+        }
+        // Update shopping list: remove old ingredients, add new ones
+        const mealPattern = `${day} ${mealType}`;
+        await removeItemsByMeal({ weekId, mealPattern });
+        if (result.ingredients && result.ingredients.length > 0) {
+          const newItems = result.ingredients.map((ing) => ({
+            id: `${day}-${mealType}-${ing.ingredient}-${Date.now()}`,
+            ingredient: ing.ingredient,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            meal: `${day} ${mealType} — ${result.newMeal}`,
+            category: ing.category,
+            checked: false,
+          }));
+          await addShoppingItems({ weekId, items: newItems });
         }
         if (result.butterQuip) setQuip(result.butterQuip);
         setMealDetail(null);
@@ -456,7 +473,7 @@ export default function ButterBarnDeluxe() {
         setQuip("Butter got stuck. Try again, sugar!");
       }
     },
-    [meals, guests, preferences, weekId, swapMeal, updateMeal, updateNutrition, setQuip]
+    [meals, guests, preferences, weekId, swapMeal, updateMeal, updateNutrition, removeItemsByMeal, addShoppingItems, setQuip]
   );
 
   // Find saved recipe for current meal detail
