@@ -23,10 +23,12 @@ export const MEAL_ICONS: Record<MealType, string> = {
 // ============ STORES ============
 export const STORES = [
   "Aldi",
-  "Giant Eagle",
-  "Walmart",
   "Costco",
-  "Trader Joe's",
+  "Dollar General",
+  "Giant Eagle",
+  "Randys",
+  "Sam's Club",
+  "Walmart",
   "Other",
 ] as const;
 
