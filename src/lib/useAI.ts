@@ -362,7 +362,12 @@ STEP 2 - Extract items:
   * Beverages (drinks, juice, soda)
   * Household (cleaning supplies, paper towels, trash bags, toiletries, pet supplies, non-food items)
   * Other (anything else)
-- Price (dollar amount on the right)
+- PRICE - CRITICAL: Calculate UNIT PRICE, not line total!
+  * If receipt shows "APPLES x3  $4.50" → price should be 1.50 (4.50 ÷ 3)
+  * If receipt shows "2 @ $2.99  $5.98" → price should be 2.99 (the unit price)
+  * If receipt shows weight-based items like "1.5 LB @ $3.99/LB  $5.99" → price should be 3.99 (per lb)
+  * Look for quantity indicators: "x2", "2@", "QTY 2", or a number before the item name
+  * The price field should ALWAYS be the price for ONE unit/lb, not the line total
 - Skip subtotals, tax, payment info
 
 STEP 3 - Find the total at the bottom.`,
