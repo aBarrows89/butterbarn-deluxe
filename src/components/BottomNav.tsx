@@ -87,8 +87,10 @@ const TABS: { id: TabType; label: string; Icon: typeof CalIcon }[] = [
 export function BottomNav({ tab, onTabChange, listCount }: BottomNavProps) {
   return (
     <div
-      className="relative z-[100] flex h-16 shrink-0 border-t"
+      className="relative z-[100] flex shrink-0 border-t"
       style={{
+        height: "var(--nav-height)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
         background: T.card,
         borderTopColor: T.border,
         boxShadow: "0 -4px 20px rgba(30,18,8,0.07)",

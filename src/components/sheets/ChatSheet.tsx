@@ -26,13 +26,27 @@ export function ChatSheet({ loading, loadLabel, onSubmit, onClose }: ChatSheetPr
 
   return (
     <div
-      className="fixed inset-x-3.5 bottom-[72px] z-[201] overflow-hidden rounded-[22px] border animate-in slide-in-from-bottom-4"
-      style={{ background: T.card, borderColor: T.border, boxShadow: T.shadowLg }}
+      className="fixed z-[201] overflow-hidden border animate-in slide-in-from-bottom-4"
+      style={{
+        background: T.card,
+        borderColor: T.border,
+        boxShadow: T.shadowLg,
+        left: "var(--sheet-margin)",
+        right: "var(--sheet-margin)",
+        bottom: "var(--sheet-bottom)",
+        borderRadius: "var(--sheet-radius)",
+      }}
     >
-      <div className="flex items-start gap-2.5 px-4 pb-2.5 pt-3.5">
+      <div
+        className="flex items-start gap-2.5"
+        style={{ padding: "var(--spacing-md)" }}
+      >
         <div
-          className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full text-[13px]"
+          className="flex shrink-0 items-center justify-center rounded-full"
           style={{
+            width: "clamp(28px, 7vw, 36px)",
+            height: "clamp(28px, 7vw, 36px)",
+            fontSize: "var(--font-sm)",
             background: "linear-gradient(135deg,#D4920A,#F0A820)",
             boxShadow: "0 2px 8px rgba(212,146,10,0.4)",
           }}
@@ -49,28 +63,30 @@ export function ChatSheet({ loading, loadLabel, onSubmit, onClose }: ChatSheetPr
               handleSubmit();
             }
           }}
-          placeholder={`Tell Butter what you want...\n"Plan a cozy week" · "Change Friday to tacos" · "Add paper towels"`}
+          placeholder={`Tell Butter what you want...\n"Plan a cozy week" · "Change Friday to tacos"`}
           rows={2}
-          className="flex-1 resize-none border-none bg-transparent pt-1 text-[13.5px] font-medium leading-relaxed outline-none"
-          style={{ color: T.brown }}
+          className="flex-1 resize-none border-none bg-transparent pt-1 font-medium leading-relaxed outline-none"
+          style={{ color: T.brown, fontSize: "var(--font-sm)" }}
         />
       </div>
       <div
-        className="flex items-center justify-between px-4 py-2.5"
-        style={{ background: T.bg }}
+        className="flex items-center justify-between"
+        style={{ background: T.bg, padding: "var(--spacing-sm) var(--spacing-md)" }}
       >
         <button
           onClick={onClose}
-          className="cursor-pointer border-none bg-transparent text-[13px] font-semibold"
-          style={{ color: T.muted }}
+          className="cursor-pointer border-none bg-transparent font-semibold"
+          style={{ color: T.muted, fontSize: "var(--font-sm)" }}
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={loading || !prompt.trim()}
-          className="cursor-pointer rounded-full border-none px-5 py-2.5 text-[13px] font-extrabold transition-all"
+          className="cursor-pointer rounded-full border-none font-extrabold transition-all"
           style={{
+            fontSize: "var(--font-sm)",
+            padding: "var(--spacing-sm) var(--spacing-md)",
             background: loading || !prompt.trim() ? "#C8BAB0" : T.butter,
             color: loading || !prompt.trim() ? "#fff" : T.brown,
             boxShadow: loading || !prompt.trim() ? "none" : "0 3px 12px rgba(212,146,10,0.4)",

@@ -54,8 +54,17 @@ export function AddItemSheet({ onAdd, onClose }: AddItemSheetProps) {
 
   return (
     <div
-      className="fixed inset-x-3.5 bottom-[72px] z-[201] rounded-[22px] border p-5 animate-in slide-in-from-bottom-4"
-      style={{ background: T.card, borderColor: T.border, boxShadow: T.shadowLg }}
+      className="fixed z-[201] border animate-in slide-in-from-bottom-4"
+      style={{
+        background: T.card,
+        borderColor: T.border,
+        boxShadow: T.shadowLg,
+        left: "var(--sheet-margin)",
+        right: "var(--sheet-margin)",
+        bottom: "var(--sheet-bottom)",
+        borderRadius: "var(--sheet-radius)",
+        padding: "var(--spacing-lg)",
+      }}
     >
       <div className="mb-3.5 text-base font-bold" style={{ fontFamily: "var(--font-lora), serif" }}>
         Add Item to List

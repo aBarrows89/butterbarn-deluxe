@@ -74,8 +74,17 @@ export function MealDetailSheet({
 }: MealDetailSheetProps) {
   return (
     <div
-      className="fixed inset-x-3.5 bottom-[72px] z-[201] max-h-[70vh] overflow-y-auto rounded-[22px] border p-5 animate-in slide-in-from-bottom-4"
-      style={{ background: T.card, borderColor: T.border, boxShadow: T.shadowLg }}
+      className="fixed z-[201] max-h-[70vh] overflow-y-auto border animate-in slide-in-from-bottom-4"
+      style={{
+        background: T.card,
+        borderColor: T.border,
+        boxShadow: T.shadowLg,
+        left: "var(--sheet-margin)",
+        right: "var(--sheet-margin)",
+        bottom: "var(--sheet-bottom)",
+        borderRadius: "var(--sheet-radius)",
+        padding: "var(--spacing-lg)",
+      }}
     >
       <div className="mb-3.5 flex items-start justify-between">
         <div>
