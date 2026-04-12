@@ -136,12 +136,35 @@ export const updateMeal = mutation({
       .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
       .first();
 
+    const now = Date.now();
+    const day = args.day as "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
+
     if (!existing) {
-      throw new Error("Meal plan not found");
+      // Create a new meal plan with empty meals and just the one being set
+      const emptyMeals = {
+        Monday: { Dinner: "" },
+        Tuesday: { Dinner: "" },
+        Wednesday: { Dinner: "" },
+        Thursday: { Dinner: "" },
+        Friday: { Dinner: "" },
+        Saturday: { Dinner: "" },
+        Sunday: { Dinner: "" },
+      };
+      emptyMeals[day] = { ...emptyMeals[day], [args.mealType]: args.mealName };
+
+      await ctx.db.insert("mealPlans", {
+        weekId: args.weekId,
+        meals: emptyMeals,
+        nutrition: {},
+        guests: 3,
+        grandmaMode: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return;
     }
 
     const updatedMeals = { ...existing.meals };
-    const day = args.day as keyof typeof updatedMeals;
     updatedMeals[day] = {
       ...updatedMeals[day],
       [args.mealType]: args.mealName,
@@ -149,7 +172,7 @@ export const updateMeal = mutation({
 
     await ctx.db.patch(existing._id, {
       meals: updatedMeals,
-      updatedAt: Date.now(),
+      updatedAt: now,
     });
   },
 });
