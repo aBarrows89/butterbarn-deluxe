@@ -149,10 +149,10 @@ export default function ButterBarnDeluxe() {
   );
 
   const handleGrandmaModeToggle = useCallback(() => {
-    const newGrandmaMode = !grandmaMode;
-    const newGuests = newGrandmaMode ? guests + 1 : Math.max(1, guests - 1);
-    updateSettings({ weekId, guests: newGuests, grandmaMode: newGrandmaMode });
-  }, [grandmaMode, guests, weekId, updateSettings]);
+    // Just toggle grandma mode - AI handles the per-day guest count
+    // (Grandma visits Sat-Tue, leaves before dinner on Tuesday)
+    updateSettings({ weekId, grandmaMode: !grandmaMode });
+  }, [grandmaMode, weekId, updateSettings]);
 
   const handleWeekChange = useCallback((direction: -1 | 1) => {
     setWeekId((current) => getWeekOffset(current, direction));
@@ -187,35 +187,35 @@ export default function ButterBarnDeluxe() {
   }, [setQuip]);
 
   const handlePlanFullWeek = useCallback(async () => {
-    const result = await planFullWeek(meals, list, guests, preferences);
+    const result = await planFullWeek(meals, list, guests, preferences, grandmaMode);
     if (result) {
       setPendingPlan(result);
     } else {
       setQuip("Butter got distracted by a great recipe. Try again!");
     }
-  }, [meals, list, guests, preferences, planFullWeek, setQuip]);
+  }, [meals, list, guests, preferences, grandmaMode, planFullWeek, setQuip]);
 
   const handlePlanDinners = useCallback(async () => {
-    const result = await planDinners(meals, list, guests, preferences);
+    const result = await planDinners(meals, list, guests, preferences, grandmaMode);
     if (result) {
       setPendingPlan(result);
     } else {
       setQuip("Butter got distracted. Try again!");
     }
-  }, [meals, list, guests, preferences, planDinners, setQuip]);
+  }, [meals, list, guests, preferences, grandmaMode, planDinners, setQuip]);
 
   const handlePlanLunches = useCallback(async () => {
-    const result = await planLunches(meals, list, guests, preferences);
+    const result = await planLunches(meals, list, guests, preferences, grandmaMode);
     if (result) {
       setPendingPlan(result);
     } else {
       setQuip("Couldn't fill lunches right now. Give it another shot!");
     }
-  }, [meals, list, guests, preferences, planLunches, setQuip]);
+  }, [meals, list, guests, preferences, grandmaMode, planLunches, setQuip]);
 
   const handlePlanDay = useCallback(
     async (day: DayFull, customPrompt: string = "") => {
-      const result = await planDay(day, meals, list, guests, customPrompt, preferences);
+      const result = await planDay(day, meals, list, guests, customPrompt, preferences, grandmaMode);
       if (result) {
         await upsertMealPlan({
           weekId,
@@ -253,7 +253,7 @@ export default function ButterBarnDeluxe() {
         return true;
       }
 
-      const result = await handlePrompt(prompt, meals, list, guests, preferences);
+      const result = await handlePrompt(prompt, meals, list, guests, preferences, grandmaMode);
       if (result) {
         await upsertMealPlan({
           weekId,

@@ -99,7 +99,7 @@ interface Preferences {
   avoidMeals: string[];
 }
 
-function buildPlanSystem(guests: number, prefs: Preferences, extra: string = "") {
+function buildPlanSystem(guests: number, prefs: Preferences, grandmaMode: boolean, extra: string = "") {
   let prefsText = "";
   if (prefs.dislikes.length > 0) {
     prefsText += `\nDISLIKES (DO NOT INCLUDE): ${prefs.dislikes.join(", ")}`;
@@ -111,7 +111,20 @@ function buildPlanSystem(guests: number, prefs: Preferences, extra: string = "")
     prefsText += `\nMEALS TO AVOID (poorly rated): ${prefs.avoidMeals.join(", ")}`;
   }
 
-  return `${BUTTER_PERSONA}${extra}${prefsText}
+  let guestInfo = `${guests} people`;
+  let grandmaNote = "";
+  if (grandmaMode) {
+    guestInfo = `${guests} people normally, but ${guests + 1} people when Grandma visits`;
+    grandmaNote = `
+GRANDMA VISITS: Sat-Tue schedule:
+- Saturday: ALL meals = ${guests + 1} people
+- Sunday: ALL meals = ${guests + 1} people
+- Monday: ALL meals = ${guests + 1} people
+- Tuesday: Breakfast & Lunch = ${guests + 1} people, Dinner & Snacks = ${guests} people (she leaves before dinner)
+- Wed/Thu/Fri: ALL meals = ${guests} people`;
+  }
+
+  return `${BUTTER_PERSONA}${extra}${prefsText}${grandmaNote}
 Return ONLY valid JSON (no markdown, no extra text):
 {
   "butterQuip":"",
@@ -119,8 +132,8 @@ Return ONLY valid JSON (no markdown, no extra text):
   "nutrition":{"Monday-Breakfast":{"calories":0,"protein":0,"carbs":0,"fat":0}},
   "shoppingList":[{"ingredient":"","quantity":"","unit":"","meal":"Day MealType — MealName","category":"Produce|Meat & Seafood|Dairy & Eggs|Pantry|Frozen|Bakery|Beverages|Household|Other"}]
 }
-Rules: keep existing meals unless request changes them. Scale quantities for ${guests} people. Consolidate duplicate ingredients. Each list item must reference its meal(s).
-IMPORTANT: nutrition key format is "Day-MealType" (e.g. "Monday-Dinner"). Provide nutrition for every meal that has a name. Calories and macros should be realistic per serving for ${guests} people total (so divide by guests for per-person). Actually provide PER PERSON values. Return ONLY the JSON.`;
+Rules: keep existing meals unless request changes them. Scale ingredient quantities according to the guest count for each specific meal (accounting for Grandma's schedule if applicable). Consolidate duplicate ingredients. Each list item must reference its meal(s).
+IMPORTANT: nutrition key format is "Day-MealType" (e.g. "Monday-Dinner"). Provide nutrition for every meal that has a name. Calories and macros should be PER PERSON values. Return ONLY the JSON.`;
 }
 
 export function useAI() {
@@ -132,14 +145,15 @@ export function useAI() {
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
       guests: number,
-      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] },
+      grandmaMode: boolean = false
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel("Planning the whole week...");
       try {
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: Plan a complete, varied, and delicious full week of meals for ${guests} people — breakfast, lunch, dinner, and snacks for all 7 days. Make it feel cohesive but varied. Think about the week as a whole.`,
-          buildPlanSystem(guests, prefs, "\nFocus: fill every single meal slot for all 7 days. Be creative, varied, and practical.")
+          buildPlanSystem(guests, prefs, grandmaMode, "\nFocus: fill every single meal slot for all 7 days. Be creative, varied, and practical.")
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -159,14 +173,15 @@ export function useAI() {
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
       guests: number,
-      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] },
+      grandmaMode: boolean = false
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel("Planning dinners...");
       try {
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: Plan a full week of varied, delicious dinners for ${guests} people. Keep any existing dinners already set.`,
-          buildPlanSystem(guests, prefs, "\nFocus: fill all dinner slots. Keep breakfasts and lunches as-is.")
+          buildPlanSystem(guests, prefs, grandmaMode, "\nFocus: fill all dinner slots. Keep breakfasts and lunches as-is.")
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -186,14 +201,15 @@ export function useAI() {
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
       guests: number,
-      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] },
+      grandmaMode: boolean = false
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel("Filling lunches...");
       try {
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: Fill in all lunches for the week for ${guests} people. Keep existing lunches. Make them quick, practical, and real.`,
-          buildPlanSystem(guests, prefs, "\nFocus: fill lunch slots only. Keep dinners and breakfasts unchanged.")
+          buildPlanSystem(guests, prefs, grandmaMode, "\nFocus: fill lunch slots only. Keep dinners and breakfasts unchanged.")
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -215,7 +231,8 @@ export function useAI() {
       currentList: unknown[],
       guests: number,
       customPrompt: string = "",
-      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] },
+      grandmaMode: boolean = false
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel(`Planning ${day}...`);
@@ -225,7 +242,7 @@ export function useAI() {
           : `Plan all meals (breakfast, lunch, dinner, snacks) for ${day} for ${guests} people. Make them varied and delicious.`;
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: ${request}`,
-          buildPlanSystem(guests, prefs, `\nFocus: ONLY update the meals for ${day}. Leave all other days completely unchanged.`)
+          buildPlanSystem(guests, prefs, grandmaMode, `\nFocus: ONLY update the meals for ${day}. Leave all other days completely unchanged.`)
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
@@ -246,14 +263,15 @@ export function useAI() {
       currentMeals: Record<string, Record<string, string>>,
       currentList: unknown[],
       guests: number,
-      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] }
+      prefs: Preferences = { dislikes: [], allergies: [], avoidMeals: [] },
+      grandmaMode: boolean = false
     ): Promise<PlanResponse | null> => {
       setLoading(true);
       setLoadLabel("Thinking...");
       try {
         const raw = await callClaude(
           `Current plan: ${JSON.stringify(currentMeals)}\nList: ${JSON.stringify(currentList)}\nRequest: ${prompt}`,
-          buildPlanSystem(guests, prefs)
+          buildPlanSystem(guests, prefs, grandmaMode)
         );
         const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
         return parsed;
