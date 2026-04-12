@@ -26,7 +26,7 @@ export const STORES = [
   "Costco",
   "Dollar General",
   "Giant Eagle",
-  "Randys",
+  "Rand's Bi-Lo",
   "Sam's Club",
   "Walmart",
   "Other",
