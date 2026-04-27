@@ -7,6 +7,7 @@ const itemValidator = v.object({
   quantity: v.string(),
   unit: v.string(),
   meal: v.string(),
+  mealKey: v.optional(v.string()),
   category: v.string(),
   checked: v.boolean(),
   estimatedCost: v.optional(v.number()),
@@ -217,6 +218,35 @@ export const removeItemsByMeal = mutation({
     const updatedItems = list.items.filter(
       (item) => !item.meal.startsWith(args.mealPattern)
     );
+
+    await ctx.db.patch(list._id, {
+      items: updatedItems,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Preferred swap-removal path: matches on the structured mealKey field
+// (e.g. "Monday-Dinner"). Falls back to the legacy meal-string prefix for
+// items written before mealKey was added, so existing data still works.
+export const removeItemsByMealKey = mutation({
+  args: {
+    weekId: v.string(),
+    mealKey: v.string(), // e.g., "Monday-Dinner"
+  },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("shoppingList")
+      .withIndex("by_week", (q) => q.eq("weekId", args.weekId))
+      .first();
+
+    if (!list) return;
+
+    const legacyPrefix = args.mealKey.replace("-", " ");
+    const updatedItems = list.items.filter((item) => {
+      if (item.mealKey) return item.mealKey !== args.mealKey;
+      return !item.meal.startsWith(legacyPrefix);
+    });
 
     await ctx.db.patch(list._id, {
       items: updatedItems,
