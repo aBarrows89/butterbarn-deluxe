@@ -8,6 +8,7 @@ interface ShoppingItem {
   quantity: string;
   unit: string;
   meal: string;
+  mealKey?: string;
   category: string;
   checked: boolean;
   estimatedCost?: number;

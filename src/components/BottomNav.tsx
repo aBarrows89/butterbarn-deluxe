@@ -109,7 +109,9 @@ export function BottomNav({ tab, onTabChange, listCount }: BottomNavProps) {
       className="relative z-[100] flex shrink-0 border-t"
       style={{
         height: "var(--nav-height)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        // Reserve the same bottom safe-area space the height accounts for, so
+        // icons sit in the visible content area and not over the gesture bar.
+        paddingBottom: "var(--nav-safe-bottom)",
         background: T.card,
         borderTopColor: T.border,
         boxShadow: "0 -4px 20px rgba(30,18,8,0.07)",

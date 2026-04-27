@@ -12,6 +12,7 @@ interface PlanResponse {
     quantity: string;
     unit: string;
     meal: string;
+    mealKey: string;
     category: string;
   }>;
 }
@@ -71,7 +72,7 @@ async function callClaude(
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
+        max_tokens: 8192,
         system,
         messages,
       }),
@@ -87,6 +88,10 @@ async function callClaude(
     }
 
     const data = await response.json();
+    if (data.stop_reason === "max_tokens") {
+      console.error("Claude response was truncated (hit max_tokens). Output is incomplete.");
+      throw new Error("Response was too long and got cut off. Try a smaller request.");
+    }
     return data.content?.[0]?.text || "";
   } catch (e) {
     clearTimeout(timeout);
@@ -161,9 +166,13 @@ Return ONLY valid JSON (no markdown, no extra text):
   "butterQuip":"",
   "meals":{"Monday":{"Dinner":""},"Tuesday":{"Dinner":""},"Wednesday":{"Dinner":""},"Thursday":{"Dinner":""},"Friday":{"Dinner":""},"Saturday":{"Dinner":""},"Sunday":{"Dinner":""}},
   "nutrition":{"Monday-Dinner":{"calories":0,"protein":0,"carbs":0,"fat":0}},
-  "shoppingList":[{"ingredient":"","quantity":"","unit":"","meal":"Day Dinner — MealName","category":"Produce|Meat & Seafood|Dairy & Eggs|Pantry|Frozen|Bakery|Beverages|Household|Other"}]
+  "shoppingList":[{"ingredient":"","quantity":"","unit":"","meal":"Day Dinner — MealName","mealKey":"Day-Dinner","category":"Produce|Meat & Seafood|Dairy & Eggs|Pantry|Frozen|Bakery|Beverages|Household|Other"}]
 }
-Rules: keep existing dinners unless request changes them. Scale ingredient quantities according to the guest count for each specific dinner (accounting for Grandma's schedule if applicable). Consolidate duplicate ingredients. Each list item must reference its meal.
+Rules: keep existing dinners unless request changes them. Scale ingredient quantities according to the guest count for each specific dinner (accounting for Grandma's schedule if applicable).
+SHOPPING LIST RULES:
+- DO NOT consolidate ingredients across different meals. If two meals both use chicken, emit TWO separate shopping list rows — one for each meal — so each meal owns its own ingredients.
+- Each shopping list item must include a "mealKey" field formatted exactly as "Day-MealType" (e.g. "Monday-Dinner", "Tuesday-Lunch"). The "meal" field is for display ("Monday Dinner — Chicken Tacos"); the "mealKey" field is for matching.
+- Every shopping list item MUST belong to exactly one meal. No "All week" or multi-meal entries.
 IMPORTANT: nutrition key format is "Day-Dinner" (e.g. "Monday-Dinner"). Provide nutrition for every dinner that has a name. Calories and macros should be PER PERSON values. Return ONLY the JSON.`;
 }
 

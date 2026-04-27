@@ -18,6 +18,7 @@ interface PlanResponse {
     quantity: string;
     unit: string;
     meal: string;
+    mealKey: string;
     category: string;
   }>;
 }

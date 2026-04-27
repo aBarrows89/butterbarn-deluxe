@@ -89,6 +89,7 @@ export default defineSchema({
         quantity: v.string(),
         unit: v.string(),
         meal: v.string(), // e.g., "Monday Dinner — Grilled Chicken"
+        mealKey: v.optional(v.string()), // structured key, e.g., "Monday-Dinner" — used for reliable swap removal
         category: v.string(), // Produce, Meat & Seafood, Dairy & Eggs, Pantry, Frozen, Bakery, Beverages, Household, Other
         checked: v.boolean(),
         estimatedCost: v.optional(v.number()),
