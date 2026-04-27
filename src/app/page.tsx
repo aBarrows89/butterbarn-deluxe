@@ -42,6 +42,7 @@ interface PlanResponse {
     quantity: string;
     unit: string;
     meal: string;
+    mealKey: string;
     category: string;
   }>;
 }
@@ -52,10 +53,38 @@ interface ShoppingItem {
   quantity: string;
   unit: string;
   meal: string;
+  mealKey?: string;
   category: string;
   checked: boolean;
   estimatedCost?: number;
   haveIt?: boolean;
+}
+
+// Merge AI-generated shopping list items with the existing list, preserving
+// the user's checked / haveIt state for any ingredient (matched by name+unit)
+// that survives the re-plan. Household items are always preserved as-is so
+// manually added supplies aren't wiped on every re-plan.
+function mergeShoppingList(
+  newAiItems: Array<Omit<ShoppingItem, "id" | "checked"> & { checked?: boolean }>,
+  existing: ShoppingItem[]
+): ShoppingItem[] {
+  const keyOf = (i: { ingredient: string; unit: string }) =>
+    `${i.ingredient.toLowerCase().trim()}|${i.unit.toLowerCase().trim()}`;
+  const oldByKey = new Map<string, ShoppingItem>();
+  for (const it of existing) {
+    if (it.category !== "Household") oldByKey.set(keyOf(it), it);
+  }
+  const mergedNew: ShoppingItem[] = newAiItems.map((item) => {
+    const prev = oldByKey.get(keyOf(item));
+    return {
+      ...item,
+      id: crypto.randomUUID(),
+      checked: prev?.checked ?? false,
+      haveIt: prev?.haveIt,
+    };
+  });
+  const householdItems = existing.filter((i) => i.category === "Household");
+  return [...mergedNew, ...householdItems];
 }
 
 export default function ButterBarnDeluxe() {
@@ -80,7 +109,7 @@ export default function ButterBarnDeluxe() {
   const toggleShoppingItem = useMutation(api.shoppingList.toggleItem);
   const addShoppingItem = useMutation(api.shoppingList.addItem);
   const addShoppingItems = useMutation(api.shoppingList.addItems);
-  const removeItemsByMeal = useMutation(api.shoppingList.removeItemsByMeal);
+  const removeItemsByMealKey = useMutation(api.shoppingList.removeItemsByMealKey);
   const clearCheckedItems = useMutation(api.shoppingList.clearChecked);
   const uncheckAllItems = useMutation(api.shoppingList.uncheckAll);
   const upsertRating = useMutation(api.ratings.upsert);
@@ -238,13 +267,10 @@ export default function ButterBarnDeluxe() {
       grandmaMode,
     });
     if (pendingPlan.shoppingList) {
-      const items = pendingPlan.shoppingList.map((item, i) => ({
-        id: `i${Date.now()}${i}`,
-        ...item,
-        checked: false,
-      }));
-      const householdItems = list.filter((i) => i.category === "Household");
-      await upsertShoppingList({ weekId, items: [...items, ...householdItems] });
+      await upsertShoppingList({
+        weekId,
+        items: mergeShoppingList(pendingPlan.shoppingList, list),
+      });
     }
     if (pendingPlan.butterQuip) setQuip(pendingPlan.butterQuip);
     setPendingPlan(null);
@@ -294,13 +320,10 @@ export default function ButterBarnDeluxe() {
           grandmaMode,
         });
         if (result.shoppingList) {
-          const items = result.shoppingList.map((item, i) => ({
-            id: `i${Date.now()}${i}`,
-            ...item,
-            checked: false,
-          }));
-          const householdItems = list.filter((i) => i.category === "Household");
-          await upsertShoppingList({ weekId, items: [...items, ...householdItems] });
+          await upsertShoppingList({
+            weekId,
+            items: mergeShoppingList(result.shoppingList, list),
+          });
         }
         if (result.butterQuip) setQuip(result.butterQuip);
       } else {
@@ -350,13 +373,10 @@ export default function ButterBarnDeluxe() {
           grandmaMode,
         });
         if (result.shoppingList) {
-          const items = result.shoppingList.map((item, i) => ({
-            id: `i${Date.now()}${i}`,
-            ...item,
-            checked: false,
-          }));
-          const householdItems = list.filter((i) => i.category === "Household");
-          await upsertShoppingList({ weekId, items: [...items, ...householdItems] });
+          await upsertShoppingList({
+            weekId,
+            items: mergeShoppingList(result.shoppingList, list),
+          });
         }
         if (result.butterQuip) setQuip(result.butterQuip);
         return true;
@@ -458,16 +478,17 @@ export default function ButterBarnDeluxe() {
           const nutritionKey = `${day}-${mealType}`;
           await updateNutrition({ weekId, nutritionKey, nutrition: result.nutrition });
         }
-        // Update shopping list: remove old ingredients, add new ones
-        const mealPattern = `${day} ${mealType}`;
-        await removeItemsByMeal({ weekId, mealPattern });
+        // Update shopping list: remove old ingredients (by structured mealKey), add new ones
+        const mealKey = `${day}-${mealType}`;
+        await removeItemsByMealKey({ weekId, mealKey });
         if (result.ingredients && result.ingredients.length > 0) {
           const newItems = result.ingredients.map((ing) => ({
-            id: `${day}-${mealType}-${ing.ingredient}-${Date.now()}`,
+            id: crypto.randomUUID(),
             ingredient: ing.ingredient,
             quantity: ing.quantity,
             unit: ing.unit,
             meal: `${day} ${mealType} — ${result.newMeal}`,
+            mealKey,
             category: ing.category,
             checked: false,
           }));
@@ -479,7 +500,7 @@ export default function ButterBarnDeluxe() {
         setQuip("Butter got stuck. Try again, sugar!");
       }
     },
-    [meals, guests, preferences, weekId, swapMeal, updateMeal, updateNutrition, removeItemsByMeal, addShoppingItems, setQuip]
+    [meals, guests, preferences, weekId, swapMeal, updateMeal, updateNutrition, removeItemsByMealKey, addShoppingItems, setQuip]
   );
 
   // Find saved recipe for current meal detail

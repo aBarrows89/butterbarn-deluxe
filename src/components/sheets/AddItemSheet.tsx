@@ -9,6 +9,7 @@ interface ShoppingItem {
   quantity: string;
   unit: string;
   meal: string;
+  mealKey?: string;
   category: string;
   checked: boolean;
   estimatedCost?: number;
@@ -40,7 +41,7 @@ export function AddItemSheet({ onAdd, onClose }: AddItemSheetProps) {
   const handleAdd = () => {
     if (!name.trim()) return;
     onAdd({
-      id: `h${Date.now()}`,
+      id: crypto.randomUUID(),
       ingredient: name.trim(),
       quantity: qty,
       unit: "",
