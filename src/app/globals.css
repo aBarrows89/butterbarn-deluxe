@@ -7,8 +7,14 @@
   --font-serif: var(--font-lora);
 
   /* Dynamic sizing based on viewport */
-  --nav-height: clamp(56px, 8vh, 72px);
-  --sheet-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+  /* --nav-content: visible icon+label area; --nav-safe-bottom: gesture-bar
+     inset with a 12px floor so devices that don't report safe-area still get
+     breathing room. --nav-height adds them so the bar GROWS to absorb the
+     system inset instead of squeezing icons into the top of a fixed box. */
+  --nav-content: clamp(56px, 7.5vh, 68px);
+  --nav-safe-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  --nav-height: calc(var(--nav-content) + var(--nav-safe-bottom));
+  --sheet-bottom: var(--nav-height);
   --sheet-margin: clamp(16px, 4vw, 20px);
   --sheet-radius: clamp(20px, 5vw, 28px);
   --font-sm: clamp(12px, 3.2vw, 14px);
@@ -45,9 +51,9 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Safe area padding for mobile devices */
+  /* Top + horizontal safe-area only. Bottom inset is owned by BottomNav so
+     it isn't applied twice (once here, once in the nav). */
   padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
